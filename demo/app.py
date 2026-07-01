@@ -605,7 +605,7 @@ with st.form("kvk_form"):
     with col1:
         zoekterm_input = st.text_input(
             "Zoeken op naam of KvK-nummer",
-            placeholder="bijv. Onesti B.V.  of  12345678",
+            placeholder="bijv. Join Administraties B.V.  of  12345678",
         )
     with col2:
         zoektype = st.radio("Zoeken op", ["Naam", "KvK-nummer"], horizontal=True)
