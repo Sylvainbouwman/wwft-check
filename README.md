@@ -1,5 +1,7 @@
 # WWFT Check Tool
 
+**Live demo: [https://wwft-check.streamlit.app](https://wwft-check.streamlit.app)**
+
 Een interactieve compliance-tool voor het uitvoeren van cliëntonderzoek conform de Wet ter voorkoming van witwassen en financieren van terrorisme (WWFT).
 
 ## Wat doet de tool?
@@ -60,4 +62,4 @@ wwft-check/
 
 ## Status
 
-Demo-versie — gebouwd voor interne presentatie aan de kopgroep. Niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.
+Demo-versie — live via [Streamlit Community Cloud](https://wwft-check.streamlit.app), gebouwd voor interne presentatie aan de kopgroep. Niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.
