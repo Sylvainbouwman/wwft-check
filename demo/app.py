@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import requests
 import os
 from datetime import datetime
@@ -151,11 +151,62 @@ def screen_opensanctions(naam: str, schema: str = "Company") -> dict:
 
 HOOG_RISICO_SBI = {"6810", "6820", "6492", "6491", "9200", "9201", "9202", "6612", "6619"}
 MIDDEN_RISICO_SBI = {"5610", "5630", "6411", "6419", "6499", "7711", "7712"}
+HOOG_RISICO_RECHTSVORM = {"Stichting", "Cooperatie", "Commanditaire Vennootschap"}
 
-HOOG_RISICO_RECHTSVORM = {"Stichting", "Coöperatie", "Commanditaire Vennootschap"}
+# EU Gedelegeerde Verordening 2016/1675 + FATF-lijst (bijgewerkt t/m 2024)
+EU_HOOG_RISICO_LANDEN = {
+    "Afghanistan", "Barbados", "Burkina Faso", "Cameroon", "Cayman Islands",
+    "Congo (DRC)", "Gibraltar", "Haiti", "Jamaica", "Jordanie",
+    "Mali", "Mozambique", "Myanmar", "Nicaragua", "Nigeria",
+    "Pakistan", "Panama", "Filipijnen", "Senegal", "Zuid-Afrika",
+    "Zuid-Soedan", "Syrie", "Tanzania", "Trinidad en Tobago", "Uganda",
+    "Verenigde Arabische Emiraten", "Vanuatu", "Vietnam", "Jemen",
+    "Noord-Korea", "Iran",
+}
+
+DIENSTVERLENING_OPTIES = [
+    "Accountancy / jaarrekening",
+    "Belastingadvies / aangifte",
+    "Salarisadministratie",
+    "Administratie / boekhouding",
+    "Advies / consultancy",
+    "Juridische dienstverlening",
+    "Overig",
+]
+
+LAND_OPTIES = (
+    ["Nederland", "Overig EU-land (laag risico)"]
+    + sorted(EU_HOOG_RISICO_LANDEN)
+    + ["Overig niet-EU land"]
+)
+
+DOEL_OPTIES = [
+    "Jaarrekening en belastingaangifte",
+    "Advisering bedrijfsovername / fusie",
+    "Bedrijfsoprichting / -structurering",
+    "Herstructurering onderneming",
+    "Financieel advies / vermogensplanning",
+    "Compliance advies",
+    "Overig (vrij invullen)",
+]
+
+TRANSACTIEPROFIEL_OPTIES = [
+    "Reguliere bedrijfsactiviteiten, geen bijzondere transacties",
+    "Seizoensgebonden omzetpatroon",
+    "Incidentele grote transacties",
+    "Internationaal betalingsverkeer",
+    "Wisselend / onregelmatig patroon",
+    "Overig (vrij invullen)",
+]
 
 
-def bereken_risico(basisprofiel: dict, screening: dict) -> tuple[str, int, list[str]]:
+def get_cdd_vorm(risico_klasse: str) -> tuple[str, str]:
+    if risico_klasse == "HOOG":
+        return "Verscherpt clientenonderzoek", "art. 8 WWFT"
+    return "Standaard clientenonderzoek", "art. 3 WWFT"
+
+
+def bereken_risico(basisprofiel: dict, screening: dict, land: str = "Nederland") -> tuple[str, int, list[str]]:
     score = 0
     factoren = []
 
@@ -169,10 +220,17 @@ def bereken_risico(basisprofiel: dict, screening: dict) -> tuple[str, int, list[
             score += 1
             factoren.append(f"Aandachtssector: {omschrijving} (SBI {code})")
 
-    rechtsvorm = basisprofiel.get("rechtsvorm", "")
+    rechtsvorm = get_rechtsvorm(basisprofiel)
     if any(rv in rechtsvorm for rv in HOOG_RISICO_RECHTSVORM):
         score += 1
         factoren.append(f"Verhoogde aandacht rechtsvorm: {rechtsvorm}")
+
+    if land in EU_HOOG_RISICO_LANDEN:
+        score += 4
+        factoren.append(f"EU/FATF hoog-risico land: {land}")
+    elif land not in ("Nederland", "Overig EU-land (laag risico)"):
+        score += 1
+        factoren.append(f"Niet-EU land: {land}")
 
     if screening.get("success"):
         hoog = screening.get("hoog_risico", 0)
@@ -182,7 +240,7 @@ def bereken_risico(basisprofiel: dict, screening: dict) -> tuple[str, int, list[
             factoren.append(f"SANCTIELIJST: {hoog} hoge-score treffer(s) gevonden!")
         elif hits > 0:
             score += 5
-            factoren.append(f"Sanctielijst: {hits} mogelijke treffer(s) – nader onderzoek vereist")
+            factoren.append(f"Sanctielijst: {hits} mogelijke treffer(s) - nader onderzoek vereist")
 
     if score >= 8:
         return "HOOG", score, factoren
@@ -244,21 +302,34 @@ def get_handelsnamen(bp: dict) -> list:
 # ──────────────────────────────────────────────
 
 def zoek_adverse_media(naam: str) -> dict:
+    naam_lower = naam.lower()
+    # Zoek op naam + negatieve termen; filter daarna op aanwezigheid van de naam
     zoektermen = [
         f'"{naam}" fraude',
-        f'"{naam}" oplichting OR witwassen',
-        f'"{naam}" sanctie OR faillissement',
+        f'"{naam}" oplichting',
+        f'"{naam}" witwassen',
+        f'"{naam}" faillissement',
+        f'"{naam}" sanctie',
     ]
     resultaten = []
+    gezien = set()
     try:
         with DDGS() as ddgs:
             for term in zoektermen:
-                for r in ddgs.text(term, max_results=3, region="nl-nl"):
+                for r in ddgs.text(term, max_results=5, region="nl-nl"):
+                    url = r.get("href", "")
+                    titel = r.get("title", "")
+                    tekst = r.get("body", "")
+                    # Alleen tonen als de bedrijfsnaam daadwerkelijk in titel of snippet staat
+                    if naam_lower not in titel.lower() and naam_lower not in tekst.lower():
+                        continue
+                    if url in gezien:
+                        continue
+                    gezien.add(url)
                     resultaten.append({
-                        "zoekterm": term,
-                        "titel": r.get("title", ""),
-                        "url":   r.get("href", ""),
-                        "tekst": r.get("body", "")[:200],
+                        "titel": titel,
+                        "url":   url,
+                        "tekst": tekst[:250],
                     })
         return {"success": True, "resultaten": resultaten}
     except Exception as e:
@@ -273,7 +344,7 @@ RISICO_CSS   = {"HOOG": "error", "MIDDEN": "warning", "LAAG": "success"}
 # PDF generatie
 # ──────────────────────────────────────────────
 
-def genereer_pdf(kvk_data, basisprofiel, screening, risico_klasse, score, factoren, toelichting, referentie, nu):
+def genereer_pdf(kvk_data, basisprofiel, screening, media, risico_klasse, score, factoren, cdd_vorm, cdd_artikel, doel_aard, toelichting, referentie, nu):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -287,34 +358,20 @@ def genereer_pdf(kvk_data, basisprofiel, screening, risico_klasse, score, factor
 
     risico_kleur_map = {"HOOG": ROOD, "MIDDEN": ORANJE, "LAAG": GROEN}
 
-    # Header balk
-    pdf.set_fill_color(*BLAUW)
-    pdf.rect(0, 0, 210, 28, "F")
-    pdf.set_xy(10, 7)
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.set_text_color(255, 255, 255)
-    pdf.cell(0, 8, "WWFT Cliëntenonderzoek", ln=True)
-    pdf.set_x(10)
-    pdf.set_font("Helvetica", "", 9)
-    pdf.cell(0, 6, "Wet ter voorkoming van witwassen en financieren van terrorisme", ln=True)
-
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_y(34)
+    def sanitize(tekst: str) -> str:
+        return (str(tekst)
+            .replace("–", "-").replace("—", "-")
+            .replace("'", "'").replace("'", "'")
+            .replace(""", '"').replace(""", '"')
+            .encode("latin-1", errors="replace").decode("latin-1"))
 
     def sectie_titel(tekst):
         pdf.set_font("Helvetica", "B", 11)
         pdf.set_fill_color(*BLAUW)
         pdf.set_text_color(255, 255, 255)
-        pdf.cell(0, 7, f"  {tekst}", ln=True, fill=True)
+        pdf.cell(0, 7, f"  {sanitize(tekst)}", ln=True, fill=True)
         pdf.set_text_color(0, 0, 0)
         pdf.ln(2)
-
-    def sanitize(tekst: str) -> str:
-        return (tekst
-            .replace("–", "-").replace("—", "-")
-            .replace("’", "'").replace("‘", "'")
-            .replace("“", '"').replace("”", '"')
-            .encode("latin-1", errors="replace").decode("latin-1"))
 
     def rij(label, waarde, achtergrond=False):
         pdf.set_font("Helvetica", "B", 9)
@@ -322,74 +379,161 @@ def genereer_pdf(kvk_data, basisprofiel, screening, risico_klasse, score, factor
         pdf.cell(55, 6, sanitize(label), fill=achtergrond)
         pdf.set_font("Helvetica", "", 9)
         pdf.set_fill_color(255, 255, 255)
-        pdf.cell(0, 6, sanitize(str(waarde)) if waarde else "-", ln=True, fill=achtergrond)
+        waarde_str = sanitize(waarde) if waarde and str(waarde).strip() else "-"
+        pdf.cell(0, 6, waarde_str, ln=True, fill=achtergrond)
 
-    # Metagegevens
+    # ── Header ──
+    pdf.set_fill_color(*BLAUW)
+    pdf.rect(0, 0, 210, 28, "F")
+    pdf.set_xy(10, 7)
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(0, 8, "WWFT Clientenonderzoek", ln=True)
+    pdf.set_x(10)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 6, "Wet ter voorkoming van witwassen en financieren van terrorisme", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_y(34)
+
+    # ── Rapportgegevens ──
     sectie_titel("Rapportgegevens")
-    rij("Referentie:",     referentie, True)
-    rij("Datum/tijd:",     nu.strftime("%d-%m-%Y %H:%M"), False)
-    rij("Uitvoerder:",     "[medewerker invullen]", True)
+    rij("Referentie:",  referentie, True)
+    rij("Datum/tijd:",  nu.strftime("%d-%m-%Y %H:%M"), False)
+    rij("Uitvoerder:",  "[medewerker invullen]", True)
     pdf.ln(4)
 
-    # Cliëntgegevens
-    sectie_titel("Cliëntgegevens")
-    bedrijfsnaam = kvk_data.get("naam", "–")
-    rij("KvK-nummer:",     kvk_data.get("kvkNummer", "–"), True)
-    rij("Naam:",           bedrijfsnaam, False)
-    rij("Rechtsvorm:",     basisprofiel.get("rechtsvorm", "–"), True)
-    rij("Adres:",          adres_str(kvk_data) or "–", False)
-    rij("Oprichting:",     basisprofiel.get("datumOprichting", "–"), True)
-    rij("Medewerkers:",    basisprofiel.get("aantalMedewerkers", "–"), False)
+    # ── Cliëntgegevens ──
+    sectie_titel("Clientgegevens")
+    rij("KvK-nummer:",  kvk_data.get("kvkNummer", ""), True)
+    rij("Naam:",        kvk_data.get("naam", ""), False)
+    rij("Rechtsvorm:",  get_rechtsvorm(basisprofiel), True)
+    rij("Adres:",       get_volledig_adres(basisprofiel) or adres_str(kvk_data), False)
+    rij("Oprichting:",  get_oprichtingsdatum(basisprofiel), True)
+    rij("Medewerkers:", get_medewerkers(basisprofiel), False)
+
+    handelsnamen = get_handelsnamen(basisprofiel)
+    if len(handelsnamen) > 1:
+        rij("Handelsnamen:", ", ".join(handelsnamen), True)
+
+    websites = get_websites(basisprofiel)
+    if websites:
+        rij("Website:", ", ".join(websites), False)
     pdf.ln(4)
 
-    # SBI codes
-    sbi_codes = basisprofiel.get("sbiCodes", [])
+    # ── Doel en aard zakelijke relatie ──
+    if doel_aard:
+        sectie_titel("Doel en aard van de zakelijke relatie  (art. 3 lid 2 sub b WWFT)")
+        rij("Dienstverlening:", doel_aard.get("dienstverlening", ""), True)
+        rij("Land cliënt/UBO:", doel_aard.get("land", ""), False)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_fill_color(*LICHT)
+        pdf.cell(55, 6, "Doel zakelijke relatie:", fill=True)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_fill_color(255, 255, 255)
+        pdf.set_x(65)
+        pdf.multi_cell(135, 6, sanitize(doel_aard.get("doel", "")))
+        if doel_aard.get("transactieprofiel"):
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_fill_color(*LICHT)
+            pdf.cell(55, 6, "Transactieprofiel:", fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_fill_color(255, 255, 255)
+            pdf.set_x(65)
+            pdf.multi_cell(135, 6, sanitize(doel_aard.get("transactieprofiel", "")))
+        pdf.ln(4)
+
+    # ── SBI-codes ──
+    sbi_codes = get_sbi_codes(basisprofiel)
     if sbi_codes:
         sectie_titel("Activiteiten (SBI-codes)")
         for i, sbi in enumerate(sbi_codes):
-            code = sbi.get("sbiCode", "")
+            code = str(sbi.get("sbiCode", ""))
             omschrijving = sbi.get("sbiOmschrijving", "")
-            rij(f"SBI {code}:", omschrijving, i % 2 == 0)
+            risico = "Hoog-risico" if code in HOOG_RISICO_SBI else \
+                     "Aandacht" if code in MIDDEN_RISICO_SBI else "Standaard"
+            rij(f"SBI {code}:", f"{omschrijving} [{risico}]", i % 2 == 0)
         pdf.ln(4)
 
-    # UBO
+    # ── UBO ──
     sectie_titel("UBO-identificatie")
     pdf.set_font("Helvetica", "I", 9)
     pdf.set_text_color(*GRIJS)
-    pdf.multi_cell(0, 6, sanitize("Niet gescreend via API - KvK UBO Register API koppeling nog niet beschikbaar.\nHandmatige verificatie via kvk.nl/ubo-register vereist."))
+    pdf.multi_cell(0, 6, "Niet gescreend via API - KvK UBO Register API nog niet gekoppeld.\nHandmatige verificatie via kvk.nl/ubo-register vereist.")
     pdf.set_text_color(0, 0, 0)
     pdf.ln(4)
 
-    # Screening
+    # ── Sanctie- en PEP-screening ──
     sectie_titel("Sanctie- en PEP-screening")
-    bron = "OpenSanctions (EU/VN/OFAC/PEP, ~40 databronnen)"
     if screening.get("geen_key"):
-        uitkomst = "Niet uitgevoerd – API key niet beschikbaar"
-        hits_str = "–"
+        uitkomst  = "Niet uitgevoerd - API key niet beschikbaar"
+        hits_str  = "-"
     elif not screening.get("success"):
-        uitkomst = "Mislukt – zie foutmelding"
-        hits_str = "–"
+        uitkomst  = "Mislukt"
+        hits_str  = "-"
     else:
         hits = screening.get("hits", 0)
         hoog = screening.get("hoog_risico", 0)
-        uitkomst = f"Treffers gevonden ({hits})" if hits > 0 else "Geen treffers gevonden"
         hits_str = str(hits)
         if hoog > 0:
             uitkomst = f"HOGE SCORE TREFFERS ({hoog}) - direct actie vereist"
+        elif hits > 0:
+            uitkomst = f"Mogelijke treffers ({hits}) - nader onderzoek vereist"
+        else:
+            uitkomst = "Geen treffers gevonden"
 
-    rij("Bron:", bron, True)
-    rij("Uitkomst:", uitkomst, False)
+    rij("Bron:",            "OpenSanctions (EU/VN/OFAC + PEP, ~40 bronnen)", True)
+    rij("Uitkomst:",        uitkomst, False)
     rij("Treffers (>70%):", hits_str, True)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(*GRIJS)
+    pdf.cell(0, 5, "Let op: geen uitgebreide commerciele PEP-screening. Aanbevolen bij hoog-risico clienten.", ln=True)
+    pdf.set_text_color(0, 0, 0)
     pdf.ln(4)
 
-    # Risicobeoordeling
+    # ── Adverse media ──
+    sectie_titel("Adverse media search")
+    if not media.get("success"):
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.cell(0, 6, "Niet uitgevoerd of mislukt.", ln=True)
+    else:
+        media_resultaten = media.get("resultaten", [])
+        if not media_resultaten:
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(*GROEN)
+            pdf.cell(0, 6, "Geen negatief nieuws gevonden waarbij de naam voorkomt.", ln=True)
+            pdf.set_text_color(0, 0, 0)
+        else:
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(*ROOD)
+            pdf.cell(0, 6, f"{len(media_resultaten)} relevante resultaten - beoordeel handmatig:", ln=True)
+            pdf.set_text_color(0, 0, 0)
+            for r in media_resultaten:
+                pdf.set_x(10)
+                pdf.set_font("Helvetica", "B", 8)
+                pdf.multi_cell(190, 5, sanitize(r.get("titel", "")[:100]))
+                pdf.set_x(10)
+                pdf.set_font("Helvetica", "", 8)
+                pdf.set_text_color(*GRIJS)
+                pdf.multi_cell(190, 4, sanitize(r.get("tekst", "")[:200]))
+                pdf.set_x(10)
+                pdf.set_font("Helvetica", "U", 8)
+                pdf.set_text_color(0, 0, 200)
+                url = r.get("url", "")
+                pdf.cell(190, 4, sanitize(url[:90]), ln=True, link=url)
+                pdf.set_text_color(0, 0, 0)
+                pdf.ln(1)
+    pdf.ln(4)
+
+    # ── Risicobeoordeling ──
     sectie_titel("Risicobeoordeling")
     kleur = risico_kleur_map.get(risico_klasse, GRIJS)
     pdf.set_font("Helvetica", "B", 13)
     pdf.set_text_color(*kleur)
     pdf.cell(0, 9, f"Classificatie: {risico_klasse}  (score: {score})", ln=True)
     pdf.set_text_color(0, 0, 0)
-    pdf.ln(1)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 7, f"Vereiste CDD-vorm: {cdd_vorm}  ({cdd_artikel})", ln=True)
+    pdf.ln(2)
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(0, 6, "Risicobepalende factoren:", ln=True)
     pdf.set_font("Helvetica", "", 9)
@@ -407,23 +551,22 @@ def genereer_pdf(kvk_data, basisprofiel, screening, risico_klasse, score, factor
         pdf.multi_cell(0, 5, sanitize(toelichting.strip()))
     pdf.ln(4)
 
-    # Conclusie
+    # ── Conclusie ──
     sectie_titel("Conclusie en vervolgactie")
     if risico_klasse == "HOOG":
-        conclusie = "Verscherpt cliëntenonderzoek vereist conform art. 8 WWFT.\nMelding compliance officer verplicht."
+        conclusie = "Verscherpt clientenonderzoek vereist conform art. 8 WWFT.\nMelding compliance officer verplicht."
     elif risico_klasse == "MIDDEN":
-        conclusie = "Standaard cliëntenonderzoek van toepassing.\nVerhoogde alertheid gedurende de relatie aanbevolen."
+        conclusie = "Standaard clientenonderzoek van toepassing.\nVerhoogde alertheid gedurende de relatie aanbevolen."
     else:
-        conclusie = "Standaard cliëntenonderzoek van toepassing."
+        conclusie = "Standaard clientenonderzoek van toepassing."
 
-    hertoetsing = nu.strftime("%d-%m-") + str(nu.year + 1)
     pdf.set_font("Helvetica", "", 9)
-    pdf.multi_cell(0, 6, sanitize(conclusie))
+    pdf.multi_cell(0, 6, conclusie)
     pdf.ln(1)
-    rij("Volgende hertoetsing:", hertoetsing, True)
+    rij("Volgende hertoetsing:", nu.strftime("%d-%m-") + str(nu.year + 1), True)
     pdf.ln(6)
 
-    # Footer
+    # ── Footer ──
     pdf.set_y(-18)
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(*GRIJS)
@@ -579,6 +722,74 @@ if "kvk_data" in st.session_state:
     )
 
     # ──────────────────────────────────────────
+    # Stap 2b: Doel en aard zakelijke relatie
+    # ──────────────────────────────────────────
+
+    st.divider()
+    st.subheader("📝 Doel en aard van de zakelijke relatie")
+    st.caption("Verplicht vast te stellen conform art. 3 lid 2 sub b WWFT")
+
+    if "doel_aard" not in st.session_state:
+        with st.form("doel_aard_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                dienstverlening = st.selectbox("Type dienstverlening", DIENSTVERLENING_OPTIES)
+                land = st.selectbox(
+                    "Land van vestiging / herkomst cliënt en UBO's",
+                    LAND_OPTIES,
+                    help="Kies het land van de cliënt of de uiteindelijk belanghebbende. "
+                         "EU/FATF hoog-risico landen zijn apart vermeld.",
+                )
+            with col2:
+                doel_keuze = st.selectbox("Doel van de zakelijke relatie", DOEL_OPTIES)
+                doel_vrij = ""
+                if doel_keuze == "Overig (vrij invullen)":
+                    doel_vrij = st.text_area(
+                        "Toelichting doel (verplicht)",
+                        placeholder="Omschrijf het doel van de zakelijke relatie.",
+                        height=68,
+                    )
+                transactieprofiel_keuze = st.selectbox("Verwacht transactieprofiel", TRANSACTIEPROFIEL_OPTIES)
+                transactieprofiel_vrij = ""
+                if transactieprofiel_keuze == "Overig (vrij invullen)":
+                    transactieprofiel_vrij = st.text_area(
+                        "Toelichting transactieprofiel",
+                        placeholder="Omschrijf het verwachte transactieprofiel.",
+                        height=68,
+                    )
+            bevestig = st.form_submit_button("Bevestigen en doorgaan →", type="primary")
+
+        if bevestig:
+            doel = doel_vrij.strip() if doel_keuze == "Overig (vrij invullen)" else doel_keuze
+            transactieprofiel = transactieprofiel_vrij.strip() if transactieprofiel_keuze == "Overig (vrij invullen)" else transactieprofiel_keuze
+            if doel_keuze == "Overig (vrij invullen)" and not doel:
+                st.error("Vul het doel van de zakelijke relatie in (of kies een optie uit de lijst).")
+            else:
+                st.session_state["doel_aard"] = {
+                    "dienstverlening": dienstverlening,
+                    "land": land,
+                    "doel": doel,
+                    "transactieprofiel": transactieprofiel,
+                }
+                st.session_state.pop("screening", None)
+                st.session_state.pop("media", None)
+                st.rerun()
+        st.stop()
+    else:
+        da = st.session_state["doel_aard"]
+        col1, col2 = st.columns(2)
+        col1.write(f"**Dienstverlening:** {da['dienstverlening']}")
+        col1.write(f"**Land:** {da['land']}")
+        col2.write(f"**Doel:** {da['doel']}")
+        if da.get("transactieprofiel"):
+            col2.write(f"**Transactieprofiel:** {da['transactieprofiel']}")
+        if st.button("Wijzigen", key="wijzig_doel"):
+            st.session_state.pop("doel_aard", None)
+            st.session_state.pop("screening", None)
+            st.session_state.pop("media", None)
+            st.rerun()
+
+    # ──────────────────────────────────────────
     # Stap 3: Screening
     # ──────────────────────────────────────────
 
@@ -593,10 +804,9 @@ if "kvk_data" in st.session_state:
         icon="ℹ️",
     )
 
-    if st.button("Start screening", type="primary"):
+    if "screening" not in st.session_state:
         with st.spinner(f"Screening van '{bedrijfsnaam}' via OpenSanctions…"):
-            screening = screen_opensanctions(bedrijfsnaam, "Company")
-        st.session_state["screening"] = screening
+            st.session_state["screening"] = screen_opensanctions(bedrijfsnaam, "Company")
 
     if "screening" in st.session_state:
         screening = st.session_state["screening"]
@@ -649,10 +859,9 @@ if "kvk_data" in st.session_state:
         st.subheader("📰 Adverse media search")
         st.caption("Zoekt via DuckDuckGo op negatief nieuws (fraude, witwassen, sanctie, faillissement)")
 
-        if st.button("Start media search", type="secondary"):
+        if "media" not in st.session_state:
             with st.spinner(f"Zoeken naar negatief nieuws over '{bedrijfsnaam}'…"):
-                media_result = zoek_adverse_media(bedrijfsnaam)
-            st.session_state["media"] = media_result
+                st.session_state["media"] = zoek_adverse_media(bedrijfsnaam)
 
         if "media" in st.session_state:
             media = st.session_state["media"]
@@ -661,14 +870,13 @@ if "kvk_data" in st.session_state:
             else:
                 resultaten_media = media.get("resultaten", [])
                 if not resultaten_media:
-                    st.success("✅ Geen negatief nieuws gevonden")
+                    st.success("✅ Geen negatief nieuws gevonden waarbij deze naam voorkomt")
                 else:
-                    st.warning(f"⚠️ {len(resultaten_media)} resultaten gevonden – beoordeel handmatig")
+                    st.warning(f"⚠️ {len(resultaten_media)} relevante resultaten gevonden – beoordeel handmatig")
                     for r in resultaten_media:
                         with st.expander(r["titel"][:100]):
                             st.write(r["tekst"])
                             st.markdown(f"[Bekijk artikel]({r['url']})")
-                            st.caption(f"Zoekopdracht: {r['zoekterm']}")
 
         # ──────────────────────────────────────
         # Stap 4: Risicobeoordeling
@@ -677,11 +885,15 @@ if "kvk_data" in st.session_state:
         st.divider()
         st.subheader("⚖️ Risicobeoordeling")
 
-        risico_klasse, score, factoren = bereken_risico(basisprofiel, screening)
+        land = st.session_state.get("doel_aard", {}).get("land", "Nederland")
+        risico_klasse, score, factoren = bereken_risico(basisprofiel, screening, land)
+        cdd_vorm, cdd_artikel = get_cdd_vorm(risico_klasse)
 
         col1, col2 = st.columns([1, 2])
         with col1:
             st.metric("Risicoclassificatie", f"{RISICO_KLEUR[risico_klasse]} {risico_klasse}")
+            st.metric("Vereiste CDD-vorm", cdd_vorm)
+            st.caption(cdd_artikel)
             st.metric("Totaalscore", score)
         with col2:
             st.write("**Risicobepalende factoren:**")
@@ -689,7 +901,7 @@ if "kvk_data" in st.session_state:
                 for f in factoren:
                     st.write(f"- {f}")
             else:
-                st.write("- Geen bijzondere risicofactoren geïdentificeerd")
+                st.write("- Geen bijzondere risicofactoren geidentificeerd")
 
         toelichting = st.text_area(
             "Toelichting / motivatie (optioneel)",
@@ -762,10 +974,12 @@ Gegenereerd door WWFT Check Tool v0.1
         with st.expander("Tekstversie bekijken"):
             st.text_area("Rapport", rapport, height=300)
 
+        media    = st.session_state.get("media", {})
+        doel_aard = st.session_state.get("doel_aard", {})
         pdf_bytes = genereer_pdf(
-            kvk_data, basisprofiel, screening,
-            risico_klasse, score, factoren,
-            toelichting, referentie, nu,
+            kvk_data, basisprofiel, screening, media,
+            risico_klasse, score, factoren, cdd_vorm, cdd_artikel,
+            doel_aard, toelichting, referentie, nu,
         )
         bestandsnaam = f"wwft_{st.session_state.get('kvk_nummer', 'check')}_{nu.strftime('%Y%m%d_%H%M')}.pdf"
         st.download_button(
@@ -780,3 +994,4 @@ Gegenereerd door WWFT Check Tool v0.1
             "💡 In de volledige versie: PDF-export, opslag in centraal dossier, "
             "automatische melding compliance officer bij hoog risico."
         )
+
