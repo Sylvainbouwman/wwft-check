@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Functioneel Ontwerp – WWFT Check Tool</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; font-size: 0.95rem; color: #2c2c2c; }
+    h1, h2, h3 { color: #1a3a5c; }
+    h2 { border-bottom: 2px solid #1a3a5c; padding-bottom: 6px; margin-top: 2.5rem; }
+    h3 { margin-top: 1.5rem; color: #2d6a9f; }
+    .badge-beschikbaar  { background-color: #198754; }
+    .badge-aanvragen    { background-color: #fd7e14; }
+    .badge-aanschaffen  { background-color: #dc3545; }
+    .badge-optioneel    { background-color: #6c757d; }
+    .uc-card { border-left: 4px solid #2d6a9f; background: #f8fbff; }
+    .prioriteit-hoog  { color: #dc3545; font-weight: 700; }
+    .prioriteit-midden { color: #fd7e14; font-weight: 700; }
+    .prioriteit-laag  { color: #198754; font-weight: 700; }
+    .meta-tabel td:first-child { width: 160px; color: #555; font-weight: 500; }
+    .toc a { text-decoration: none; color: #2d6a9f; }
+    .toc a:hover { text-decoration: underline; }
+    @media print {
+      .no-print { display: none; }
+      body { font-size: 11pt; }
+      h2 { page-break-before: auto; }
+    }
+  </style>
+</head>
+<body>
+<div class="container" style="max-width:900px; padding: 2rem 1.5rem 4rem;">
+
+  <!-- Voorblad -->
+  <div class="mb-4 p-4" style="background:#1a3a5c; color:white; border-radius:8px;">
+    <div class="row align-items-center">
+      <div class="col">
+        <h1 class="mb-1" style="color:white; font-size:1.8rem;">WWFT Check Tool</h1>
+        <p class="mb-0" style="font-size:1.05rem; opacity:0.85;">Functioneel Ontwerp – Concept ter bespreking</p>
+      </div>
+      <div class="col-auto text-end">
+        <small style="opacity:0.75;">
+          Versie: 0.1 (concept)<br/>
+          Datum: 1 juli 2026<br/>
+          Status: Ter bespreking kopgroep
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documentinfo -->
+  <table class="table table-sm meta-tabel mb-4">
+    <tbody>
+      <tr><td>Onderwerp</td><td>Digitale ondersteuning WWFT cliëntenonderzoek</td></tr>
+      <tr><td>Doelgroep</td><td>Kopgroep AI / Compliance / Accountants</td></tr>
+      <tr><td>Auteur</td><td>[naam]</td></tr>
+      <tr><td>Organisatie</td><td>[organisatienaam]</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Inhoudsopgave -->
+  <div class="card toc mb-4 no-print">
+    <div class="card-body">
+      <strong>Inhoudsopgave</strong>
+      <ol class="mt-2 mb-0">
+        <li><a href="#aanleiding">Aanleiding en doelstelling</a></li>
+        <li><a href="#huidige-situatie">Huidige situatie</a></li>
+        <li><a href="#gewenste-situatie">Gewenste situatie</a></li>
+        <li><a href="#gebruikers">Gebruikers en rollen</a></li>
+        <li><a href="#use-cases">Use Cases</a></li>
+        <li><a href="#apis">API's en koppelingen</a></li>
+        <li><a href="#architectuur">Globale architectuur</a></li>
+        <li><a href="#aanschaffingen">Benodigde aanschaffingen</a></li>
+        <li><a href="#open-vragen">Open vragen en beslispunten</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 1. Aanleiding -->
+  <h2 id="aanleiding">1. Aanleiding en doelstelling</h2>
+  <p>
+    De WWFT (Wet ter voorkoming van witwassen en financieren van terrorisme) verplicht
+    poortwachtersorganisaties tot het uitvoeren van cliëntenonderzoek (CDD – Client Due Diligence)
+    vóór en gedurende de dienstverlening. Bij niet-naleving riskeert de organisatie boetes van de
+    AFM/DNB en reputatieschade.
+  </p>
+  <p>
+    Op dit moment voeren medewerkers dit onderzoek handmatig uit via publieke bronnen (Google, KvK.nl,
+    diverse sanctielijst-websites). Dit is tijdrovend, foutgevoelig en produceert geen gestandaardiseerd
+    en auditeerbaar dossier.
+  </p>
+  <p>
+    <strong>Doelstelling:</strong> Een interne webapplicatie bouwen die medewerkers stap voor stap
+    begeleidt door het WWFT cliëntenonderzoek, automatisch relevante bronnen raadpleegt, een
+    risicobeoordeling uitvoert en een auditeerbaar rapport genereert.
+  </p>
+
+  <!-- 2. Huidige situatie -->
+  <h2 id="huidige-situatie">2. Huidige situatie</h2>
+  <p><strong>Hoe werkt het nu:</strong></p>
+  <ul>
+    <li>Medewerker zoekt handmatig op via kvk.nl en noteert gegevens in een Word/Excel-bestand.</li>
+    <li>Sanctielijsten worden handmatig geraadpleegd (EU-website, diverse Google-zoekopdrachten).</li>
+    <li>UBO's worden opgevraagd via kvk.nl/ubo-register (handmatig).</li>
+    <li>Risicobeoordeling is niet gestandaardiseerd; verschilt per medewerker.</li>
+    <li>Geen centrale opslag van dossiers; geen herinneringen voor periodieke hertoetsing.</li>
+    <li>Geen audit trail van wie welk onderzoek heeft gedaan en wanneer.</li>
+  </ul>
+  <table class="table table-bordered table-sm mt-3">
+    <thead class="table-light"><tr><th>Knelpunt</th><th>Impact</th></tr></thead>
+    <tbody>
+      <tr><td>Tijdrovend (15–45 min per cliënt)</td><td>Hoog – schaalt niet bij groei</td></tr>
+      <tr><td>Niet reproduceerbaar / gestandaardiseerd</td><td>Hoog – compliancerisico</td></tr>
+      <tr><td>Geen audit trail</td><td>Hoog – problematisch bij toezichthouder</td></tr>
+      <tr><td>Geen periodieke hertoetsing-signalering</td><td>Midden – risico op verouderde dossiers</td></tr>
+      <tr><td>Kennis afhankelijk van individu</td><td>Midden – kwetsbaar bij personeelswissels</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 3. Gewenste situatie -->
+  <h2 id="gewenste-situatie">3. Gewenste situatie</h2>
+  <p>Een webapplicatie die medewerkers begeleidt door het gehele CDD-proces:</p>
+  <ol>
+    <li><strong>Cliënt opzoeken</strong> via KvK-nummer → automatisch bedrijfsgegevens ophalen</li>
+    <li><strong>UBO identificeren</strong> via KvK UBO Register API (separate koppeling)</li>
+    <li><strong>Sanctie- en PEP-screening</strong> op naam van bedrijf en UBO's via geautomatiseerde lijsten</li>
+    <li><strong>Risicobeoordeling</strong> op basis van sector (SBI-code), rechtsvorm, land en screeningsuitslag</li>
+    <li><strong>Dossiervorming</strong> met documentupload (ID-bewijs, UBO-verklaring)</li>
+    <li><strong>Auditeerbaar rapport</strong> met tijdstempel en medewerkersnaam</li>
+    <li><strong>Hertoetsing-signalering</strong>: automatische melding bij verlopen dossiers</li>
+  </ol>
+  <div class="alert alert-info mt-3">
+    <strong>Tijdwinst inschatting:</strong> Van 15–45 minuten handmatig naar ~5 minuten gestructureerd
+    per cliënt. Bij 100 nieuwe cliënten per jaar: ~50–65 uur tijdsbesparing.
+  </div>
+
+  <!-- 4. Gebruikers en rollen -->
+  <h2 id="gebruikers">4. Gebruikers en rollen</h2>
+  <table class="table table-bordered table-sm">
+    <thead class="table-light">
+      <tr><th>Rol</th><th>Omschrijving</th><th>Rechten</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Medewerker</strong></td>
+        <td>Accountant, adviseur, administratief medewerker</td>
+        <td>Eigen dossiers aanmaken, bekijken, screenen, rapport genereren</td>
+      </tr>
+      <tr>
+        <td><strong>Compliance officer</strong></td>
+        <td>Bewaker van WWFT-naleving</td>
+        <td>Alle dossiers inzien, goedkeuren/afwijzen, rapportages organisatieniveau</td>
+      </tr>
+      <tr>
+        <td><strong>Manager</strong></td>
+        <td>Teamleider / partner</td>
+        <td>Teamdossiers inzien, statistieken bekijken</td>
+      </tr>
+      <tr>
+        <td><strong>Beheerder</strong></td>
+        <td>ICT / applicatiebeheer</td>
+        <td>Gebruikersbeheer, systeemconfiguratie, API-sleutels beheren</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 5. Use Cases -->
+  <h2 id="use-cases">5. Use Cases</h2>
+
+  <!-- UC01 -->
+  <div class="card uc-card p-3 mb-3">
+    <h3 class="mt-0">UC01 – Nieuw cliëntdossier aanmaken</h3>
+    <table class="table table-sm meta-tabel mb-0">
+      <tbody>
+        <tr><td>Actor</td><td>Medewerker</td></tr>
+        <tr><td>Trigger</td><td>Nieuwe cliëntrelatie of opdracht wordt aangegaan</td></tr>
+        <tr><td>Precondities</td><td>Medewerker is ingelogd; KvK-nummer of naam van cliënt is bekend</td></tr>
+        <tr><td>Postcondities</td><td>Dossier aangemaakt in systeem; eerste screening uitgevoerd</td></tr>
+        <tr><td>Hoofdscenario</td><td>
+          <ol class="mb-0">
+            <li>Medewerker klikt op "Nieuw cliëntenonderzoek"</li>
+            <li>Voert KvK-nummer in</li>
+            <li>Systeem haalt bedrijfsgegevens op (UC02)</li>
+            <li>Medewerker verifieert gegevens en start screening (UC04)</li>
+            <li>Risicobeoordeling wordt uitgevoerd (UC05)</li>
+            <li>Rapport wordt gegenereerd (UC06)</li>
+            <li>Dossier opgeslagen met tijdstempel en medewerkersnaam</li>
+          </ol>
+        </td></tr>
+        <tr><td>Alternatief</td><td>Particulier (natuurlijk persoon): handmatige invoer naam + geboortedatum</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- UC02 -->
+  <div class="card uc-card p-3 mb-3">
+    <h3 class="mt-0">UC02 – KvK-gegevens automatisch ophalen</h3>
+    <table class="table table-sm meta-tabel mb-0">
+      <tbody>
+        <tr><td>Actor</td><td>Systeem (geautomatiseerd)</td></tr>
+        <tr><td>Trigger</td><td>Medewerker voert KvK-nummer in</td></tr>
+        <tr><td>Precondities</td><td>Geldige KvK API-verbinding beschikbaar</td></tr>
+        <tr><td>Postcondities</td><td>Bedrijfsnaam, adres, rechtsvorm, SBI-code(s), datum oprichting ingevuld</td></tr>
+        <tr><td>Hoofdscenario</td><td>
+          <ol class="mb-0">
+            <li>Systeem verstuurt API-verzoek naar KvK Handelsregister</li>
+            <li>Basisgegevens worden opgehaald en getoond</li>
+            <li>SBI-code wordt automatisch gelabeld als risico-indicator</li>
+            <li>Medewerker kan gegevens aanvullen of corrigeren</li>
+          </ol>
+        </td></tr>
+        <tr><td>Uitzondering</td><td>KvK-nummer niet gevonden → melding aan medewerker</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- UC03 -->
+  <div class="card uc-card p-3 mb-3">
+    <h3 class="mt-0">UC03 – UBO identificeren</h3>
+    <table class="table table-sm meta-tabel mb-0">
+      <tbody>
+        <tr><td>Actor</td><td>Medewerker + Systeem</td></tr>
+        <tr><td>Trigger</td><td>Na ophalen KvK-basisgegevens</td></tr>
+        <tr><td>Precondities</td><td>KvK UBO Register API gekoppeld <em>(nog aan te vragen)</em></td></tr>
+        <tr><td>Postcondities</td><td>UBO('s) geïdentificeerd en opgeslagen in dossier</td></tr>
+        <tr><td>Hoofdscenario</td><td>
+          <ol class="mb-0">
+            <li>Systeem haalt UBO-informatie op via KvK UBO API</li>
+            <li>Namen, geboortedatums en aandeelhouderpercentages worden getoond</li>
+            <li>UBO's worden automatisch meegenomen in sanctie/PEP-screening (UC04)</li>
+          </ol>
+        </td></tr>
+        <tr><td>Huidig alternatief</td><td>Handmatige raadpleging op kvk.nl/ubo-register + handmatige invoer</td></tr>
+        <tr><td class="prioriteit-hoog">Prioriteit</td><td>Hoog – WWFT verplicht UBO-identificatie</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- UC04 -->
+  <div class="card uc-card p-3 mb-3">
+    <h3 class="mt-0">UC04 – Sanctie- en PEP-screening</h3>
+    <table class="table table-sm meta-tabel mb-0">
+      <tbody>
+        <tr><td>Actor</td><td>Systeem (geautomatiseerd)</td></tr>
+        <tr><td>Trigger</td><td>Na UC02 / UC03; of bij hertoetsing</td></tr>
+        <tr><td>Precondities</td><td>OpenSanctions API bereikbaar</td></tr>
+        <tr><td>Postcondities</td><td>Screeningresultaat vastgelegd; eventuele treffers gemarkeerd</td></tr>
+        <tr><td>Hoofdscenario</td><td>
+          <ol class="mb-0">
+            <li>Systeem screent bedrijfsnaam en UBO-namen via OpenSanctions API</li>
+            <li>Resultaten worden geclassificeerd: geen treffer / mogelijke treffer / sterke treffer</li>
+            <li>Sterke treffer → automatisch risico HOOG + melding compliance officer</li>
+            <li>Screeningsresultaat wordt opgeslagen met tijdstempel en versie sanctielijst</li>
+          </ol>
+        </td></tr>
+        <tr><td>Uitzondering</td><td>API niet bereikbaar → melding, handmatige screening vereist</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- UC05 -->
+  <div class="card uc-card p-3 mb-3">
+    <h3 class="mt-0">UC05 – Risicobeoordeling uitvoeren</h3>
+    <table class="table table-sm meta-tabel mb-0">
+      <tbody>
+        <tr><td>Actor</td><td>Systeem + Medewerker (eindoordeel)</td></tr>
+        <tr><td>Trigger</td><td>Na UC04</td></tr>
+        <tr><td>Precondities</td><td>Bedrijfsgegevens en screeningsresultaten beschikbaar</td></tr>
+        <tr><td>Postcondities</td><td>Risicoclassificatie vastgelegd: Laag / Midden / Hoog</td></tr>
+        <tr><td>Hoofdscenario</td><td>
+          <ol class="mb-0">
+            <li>Systeem berekent automatisch risicoscore op basis van:
+              <ul>
+                <li>Sector (SBI-code) – bijv. vastgoed, kansspelen = hoog</li>
+                <li>Rechtsvorm – bijv. stichting, coöperatie = verhoogd</li>
+                <li>Land van herkomst / vestiging</li>
+                <li>Screeningsuitslag (sanctielijst/PEP-treffer)</li>
+              </ul>
+            </li>
+            <li>Medewerker kan risicoclassificatie bijstellen met motivatie</li>
+            <li>Bij HOOG risico: melding compliance officer + verplicht verscherpt onderzoek (art. 8 WWFT)</li>
+          </ol>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- UC06 -->
+  <div class="card uc-card p-3 mb-3">
+    <h3 class="mt-0">UC06 – Rapport genereren</h3>
+    <table class="table table-sm meta-tabel mb-0">
+      <tbody>
+        <tr><td>Actor</td><td>Medewerker</td></tr>
+        <tr><td>Trigger</td><td>Na afronding cliëntenonderzoek</td></tr>
+        <tr><td>Postcondities</td><td>PDF/tekstrapport opgeslagen in dossier, downloadbaar</td></tr>
+        <tr><td>Hoofdscenario</td><td>
+          <ol class="mb-0">
+            <li>Systeem compileert alle stappen in gestructureerd rapport</li>
+            <li>Rapport bevat: cliëntgegevens, UBO's, screeningresultaten, risicoclassificatie, motivatie, datum, medewerker</li>
+            <li>Rapport wordt opgeslagen als auditeerbaar bewijs</li>
+            <li>Medewerker kan rapport downloaden (PDF / Word)</li>
+          </ol>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- UC07 -->
+  <div class="card uc-card p-3 mb-3">
+    <h3 class="mt-0">UC07 – Periodieke hertoetsing</h3>
+    <table class="table table-sm meta-tabel mb-0">
+      <tbody>
+        <tr><td>Actor</td><td>Systeem + Medewerker</td></tr>
+        <tr><td>Trigger</td><td>Tijdsinterval verstreken (bijv. 1 jaar) of wijziging bij cliënt</td></tr>
+        <tr><td>Postcondities</td><td>Nieuw screeningmoment vastgelegd; dossier actueel</td></tr>
+        <tr><td>Hoofdscenario</td><td>
+          <ol class="mb-0">
+            <li>Systeem signaleert medewerker dat hertoetsing vereist is</li>
+            <li>Medewerker herhaalt screening (UC04) en risicobeoordeling (UC05)</li>
+            <li>Nieuw rapport gegenereerd en aan dossier toegevoegd</li>
+          </ol>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 6. API's en koppelingen -->
+  <h2 id="apis">6. API's en koppelingen</h2>
+  <p>Onderstaand overzicht toont welke koppelingen benodigd zijn, wat de status is en wat de verwachte kosten zijn.</p>
+  <table class="table table-bordered table-sm">
+    <thead class="table-dark">
+      <tr>
+        <th>Koppeling</th>
+        <th>Wat het levert</th>
+        <th>Status</th>
+        <th>Kostenindicatie</th>
+        <th>Prioriteit</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>KvK Handelsregister API</strong></td>
+        <td>Bedrijfsnaam, adres, rechtsvorm, SBI-code, datum oprichting</td>
+        <td><span class="badge badge-beschikbaar">Beschikbaar</span></td>
+        <td>Gratis (na registratie KvK Developer Portal)</td>
+        <td class="prioriteit-hoog">Hoog</td>
+      </tr>
+      <tr>
+        <td><strong>KvK UBO Register API</strong></td>
+        <td>Naam, geboortedatum, percentage aandeelhouderschap van UBO's</td>
+        <td><span class="badge badge-aanvragen">Aanvragen vereist</span></td>
+        <td>Gratis (overheidsdata) – aparte toegang aanvragen bij KvK</td>
+        <td class="prioriteit-hoog">Hoog</td>
+      </tr>
+      <tr>
+        <td><strong>OpenSanctions</strong> (open source)</td>
+        <td>EU/VN/OFAC sanctielijsten, PEP-registers, ~40 databronnen</td>
+        <td><span class="badge badge-beschikbaar">Beschikbaar</span></td>
+        <td>Gratis (cloud API beperkt gebruik) / Zelf hosten ~€50/mnd server</td>
+        <td class="prioriteit-hoog">Hoog</td>
+      </tr>
+      <tr>
+        <td><strong>OpenSanctions Cloud API</strong></td>
+        <td>Zelfde als boven, maar hogere limieten en SLA</td>
+        <td><span class="badge badge-aanschaffen">Aan te kopen</span></td>
+        <td>~€150–500/mnd afhankelijk van volume</td>
+        <td class="prioriteit-midden">Midden</td>
+      </tr>
+      <tr>
+        <td><strong>World-Check (Refinitiv/LSEG)</strong></td>
+        <td>Commerciële PEP + sanctie + adverse media database</td>
+        <td><span class="badge badge-optioneel">Optioneel</span></td>
+        <td>€15.000–50.000/jaar (enterprise licentie)</td>
+        <td class="prioriteit-laag">Optioneel</td>
+      </tr>
+      <tr>
+        <td><strong>Comply Advantage</strong></td>
+        <td>PEP + sanctie + nieuws screening, per-search pricing</td>
+        <td><span class="badge badge-optioneel">Optioneel</span></td>
+        <td>€500–2.000/mnd + per search</td>
+        <td class="prioriteit-laag">Optioneel</td>
+      </tr>
+      <tr>
+        <td><strong>iDIN / eHerkenning</strong></td>
+        <td>Digitale identiteitsverificatie voor particulieren / eenmanszaken</td>
+        <td><span class="badge badge-optioneel">Optioneel</span></td>
+        <td>€0,30–0,70 per verificatie</td>
+        <td class="prioriteit-laag">Fase 2</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="alert alert-warning mt-2">
+    <strong>Conclusie koppelingen:</strong> De minimale set voor een werkende WWFT-tool bestaat uit
+    <strong>KvK Basisregistratie</strong> (al beschikbaar), <strong>KvK UBO Register</strong>
+    (aanvragen bij KvK, gratis) en <strong>OpenSanctions</strong> (gratis).
+    Commerciële PEP-databases zijn niet direct vereist, maar verhogen de kwaliteit van de screening.
+  </div>
+
+  <!-- 7. Architectuur -->
+  <h2 id="architectuur">7. Globale architectuur</h2>
+  <pre style="background:#f4f7fb; border:1px solid #d0e0f0; padding:1rem; border-radius:6px; font-size:0.85rem;">
+┌─────────────────────────────────────────────────────────────┐
+│                     WWFT Check Tool                         │
+│                                                             │
+│  Webbrowser (medewerker)                                    │
+│       │                                                     │
+│       ▼                                                     │
+│  Frontend (React / Streamlit)                               │
+│       │                                                     │
+│       ▼                                                     │
+│  Backend API (Python FastAPI)                               │
+│   ├── /api/clients        – dossiers                        │
+│   ├── /api/screening      – sanctie check                   │
+│   ├── /api/reports        – rapportage                      │
+│   └── /api/auth           – inloggen (Azure AD SSO)         │
+│       │                                                     │
+│       ├──► KvK API         (basisgegevens + UBO)           │
+│       ├──► OpenSanctions   (sanctie + PEP screening)        │
+│       └──► PostgreSQL      (dossiers, audit trail)          │
+│                                                             │
+│  Hosting: on-premise / Azure (AVG-compliant)               │
+└─────────────────────────────────────────────────────────────┘
+  </pre>
+  <p>
+    <strong>Authenticatie:</strong> Koppeling met Azure Active Directory (of bestaand SSO-systeem)
+    zodat medewerkers met hun werkaccount inloggen – geen apart wachtwoord nodig.
+  </p>
+  <p>
+    <strong>Gegevensopslag:</strong> Alle dossiers worden lokaal opgeslagen (on-premise of AVG-conforme
+    cloud). Persoonsgegevens worden versleuteld opgeslagen. Bewaarplicht conform WWFT: minimaal 5 jaar.
+  </p>
+
+  <!-- 8. Aanschaffingen -->
+  <h2 id="aanschaffingen">8. Benodigde aanschaffingen – samenvatting</h2>
+  <table class="table table-bordered table-sm">
+    <thead class="table-light">
+      <tr><th>Actie</th><th>Wat</th><th>Kosten</th><th>Wanneer</th></tr>
+    </thead>
+    <tbody>
+      <tr class="table-success">
+        <td>Niets extra</td>
+        <td>KvK Basisregistratie API</td>
+        <td>€0 (al beschikbaar)</td>
+        <td>Direct</td>
+      </tr>
+      <tr class="table-warning">
+        <td>Aanvragen bij KvK</td>
+        <td>KvK UBO Register API</td>
+        <td>€0 (overheidsdata)</td>
+        <td>Fase 1 – aanvragen via developers.kvk.nl</td>
+      </tr>
+      <tr class="table-success">
+        <td>Registreren</td>
+        <td>OpenSanctions (gratis tier / zelf hosten)</td>
+        <td>€0 – €50/mnd</td>
+        <td>Fase 1</td>
+      </tr>
+      <tr class="table-light">
+        <td>Optioneel aanschaffen</td>
+        <td>OpenSanctions Cloud (hogere limieten)</td>
+        <td>~€150–500/mnd</td>
+        <td>Fase 2 / bij groei</td>
+      </tr>
+      <tr class="table-light">
+        <td>Optioneel aanschaffen</td>
+        <td>Commerciële PEP-database (World-Check etc.)</td>
+        <td>€15.000+/jaar</td>
+        <td>Fase 3 / beslissing na pilot</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 9. Open vragen -->
+  <h2 id="open-vragen">9. Open vragen en beslispunten</h2>
+  <table class="table table-bordered table-sm">
+    <thead class="table-light">
+      <tr><th>#</th><th>Vraag</th><th>Wie beslist</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Welke risicofactoren hanteert de organisatie als standaard voor de risicobeoordeling?
+            (Hoe bepalen we nu wat laag/midden/hoog is?)</td>
+        <td>Compliance officer</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Is OpenSanctions (open source) voldoende, of is een commerciële PEP-database vereist
+            vanuit het toezichtkader?</td>
+        <td>Compliance officer / externe accountant</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Wat is de bewaarplicht en dataverwerkingsgrondslag? Moet er een DPIA worden opgesteld?</td>
+        <td>Privacy officer / FG</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Hosting: on-premise (eigen servers) of AVG-conforme cloud (bijv. Microsoft Azure)?</td>
+        <td>ICT / management</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Integratie met bestaande systemen (CRM, dossiersysteem)? Welke systemen zijn in gebruik?</td>
+        <td>ICT / kopgroep</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Wie zijn de key users die het systeem mogen testen en feedback geven (pilot groep)?</td>
+        <td>Management / kopgroep</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 10. Roadmap -->
+  <h2 id="roadmap">10. Roadmap</h2>
+  <table class="table table-bordered table-sm">
+    <thead class="table-dark">
+      <tr><th>Fase</th><th>Scope</th><th>Benodigde koppelingen</th><th>Doorlooptijd (indicatief)</th></tr>
+    </thead>
+    <tbody>
+      <tr class="table-success">
+        <td><strong>Fase 1 – MVP</strong></td>
+        <td>KvK-lookup, sanctiescreening, risicoscore, tekstrapport</td>
+        <td>KvK Basis (beschikbaar) + OpenSanctions (gratis)</td>
+        <td>3–4 weken</td>
+      </tr>
+      <tr class="table-warning">
+        <td><strong>Fase 2 – Uitbreiding</strong></td>
+        <td>UBO-koppeling, documentupload, dossierarchief, hertoetsing-signalering</td>
+        <td>+ KvK UBO API (aanvragen)</td>
+        <td>4–6 weken na fase 1</td>
+      </tr>
+      <tr class="table-light">
+        <td><strong>Fase 3 – Productie</strong></td>
+        <td>SSO / Azure AD, PDF-rapport, dashboard compliance officer, gebruikersbeheer</td>
+        <td>+ Azure AD / hosting beslissing</td>
+        <td>6–8 weken na fase 2</td>
+      </tr>
+      <tr class="table-light">
+        <td><strong>Fase 4 – Optioneel</strong></td>
+        <td>Commerciële PEP-database, integratie CRM/dossiersysteem, FIU-rapportagemodule</td>
+        <td>+ Commerciële database (beslissing)</td>
+        <td>Na go-live evaluatie</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="alert alert-primary mt-4">
+    <strong>Voorstel voor volgende stap:</strong> Akkoord op scope Fase 1, aanvraag KvK UBO API starten,
+    en klein pilotteam aanwijzen (3–5 accountants) voor gebruikerstesten van de MVP.
+  </div>
+
+  <hr class="mt-5"/>
+  <small class="text-muted">Concept v0.1 – Gegenereerd ten behoeve van kopgroep AI, 1 juli 2026. Niet voor extern gebruik.</small>
+
+</div>
+</body>
+</html>

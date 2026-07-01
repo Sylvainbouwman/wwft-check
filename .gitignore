@@ -1,0 +1,17 @@
+# API keys en omgevingsvariabelen
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Test/debug bestanden
+demo/test_*.py
+
+# OS
+.DS_Store
+Thumbs.db
