@@ -956,7 +956,7 @@ button:hover{background:#f1f3f5}
 <body>
 <script>function sendPrompt(){}</script>
 """ + _fragment + "\n</body>\n</html>"
-        components.html(_full_html, height=430, scrolling=False)
+        components.html(_full_html, height=460, scrolling=False)
 
     with tab_tekst:
         _md_path = os.path.join(_APP_DIR, "wwft-handleiding-medewerkers_v1.md")

@@ -7,7 +7,7 @@
 .wf-node{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;font-size:16px;transition:transform .2s,background .2s;background:var(--surface-1);color:var(--text-muted)}
 .wf-node.done{color:#fff}
 .wf-node.active{transform:scale(1.18)}
-.wf-hero{border-radius:12px;padding:1.75rem;position:relative;overflow:hidden}
+.wf-hero{border-radius:12px;padding:1.75rem 1.75rem 2.25rem;position:relative;overflow:hidden}
 .wf-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;border-radius:999px;margin-bottom:14px}
 .wf-icon-big{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
 .wf-icon-big i{font-size:28px}
@@ -24,12 +24,12 @@
   <div class="wf-line-fill" id="wf-line-fill"></div>
   <div class="wf-nodes" id="wf-nodes"></div>
 </div>
-<div id="wf-hero"></div>
 <div class="wf-legend">
   <div class="wf-legend-item"><span class="wf-legend-dot" style="background:#378ADD"></span>identificatie</div>
   <div class="wf-legend-item"><span class="wf-legend-dot" style="background:#EF9F27"></span>risico</div>
   <div class="wf-legend-item"><span class="wf-legend-dot" style="background:#1D9E75"></span>borging</div>
 </div>
+<div id="wf-hero"></div>
 <div class="wf-nav">
   <button onclick="wfMove(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i> vorige</button>
   <button onclick="wfMove(1)">volgende <i class="ti ti-chevron-right" aria-hidden="true"></i></button>
@@ -68,7 +68,6 @@ function wfRender(){
       <div class="wf-icon-big" style="background:${s.color}"><i class="ti ${s.icon}" aria-hidden="true" style="color:#fff"></i></div>
       <div class="wf-title" style="color:${s.dark}">${s.title}</div>
       <div class="wf-text">${s.text}</div>
-      <button onclick="sendPrompt('${s.action}')" style="margin-top:14px;font-size:13px;background:#fff">${s.action} <i class="ti ti-arrow-right" aria-hidden="true" style="font-size:14px"></i></button>
     </div>`;
 }
 function wfGo(i){ wfIdx = i; wfRender(); }
