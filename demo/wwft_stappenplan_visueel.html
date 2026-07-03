@@ -67,12 +67,20 @@ function wfRender(){
       </div>
       <div class="wf-title" style="color:${s.dark}">${s.title}</div>
       <div class="wf-text">${s.text}</div>
-      <div style="margin-top:14px;font-size:13px;padding:8px 12px;background:rgba(255,255,255,0.65);border-radius:8px;color:${s.dark};display:inline-flex;align-items:center;gap:8px">
-        <i class="ti ti-message-question" aria-hidden="true"></i>${s.action}
-      </div>
+      <button onclick="copyHint('${s.action.replace(/'/g,"\\'")}', this)" title="Klik om te kopiëren" style="margin-top:14px;font-size:13px;padding:8px 12px;background:rgba(255,255,255,0.65);border:none;border-radius:8px;color:${s.dark};cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-align:left">
+        <i class="ti ti-clipboard" aria-hidden="true"></i>${s.action}
+      </button>
     </div>`;
 }
 function wfGo(i){ wfIdx = i; wfRender(); }
 function wfMove(d){ wfIdx = Math.max(0, Math.min(wfSteps.length-1, wfIdx+d)); wfRender(); }
+function copyHint(text, btn){
+  navigator.clipboard.writeText(text).then(function(){
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-check"></i> Gekopieerd!';
+    btn.style.background = 'rgba(29,158,117,0.15)';
+    setTimeout(function(){ btn.innerHTML = orig; btn.style.background = 'rgba(255,255,255,0.65)'; }, 2000);
+  });
+}
 wfRender();
 </script>
