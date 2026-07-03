@@ -17,6 +17,7 @@ Een interactieve compliance-tool voor het uitvoeren van cliëntenonderzoek confo
 | 3 | **Doel en aard zakelijke relatie** — conform art. 3 lid 2 sub b WWFT |
 | 4 | **Personen en UBO-onderzoek** — 6 routes op basis van rechtsvorm (eenmanszaak, VOF/maatschap, CV, BV/NV, stichting, vereniging) met volledige art. 33-identificatievelden |
 | 5 | **Sanctie- en PEP-screening** — automatisch via OpenSanctions (~40 bronnen: OFAC, EU, VN, PEP-registers) |
+| 5b | **Handmatige PEP-check** — vastlegging van wat opgezocht is en de uitkomst (geen abonnement nodig voor mkb-portefeuille) |
 | 6 | **Adverse media search** — DuckDuckGo op fraude, witwassen, faillissement e.d. |
 | 7 | **Integriteitsvragen** — conform NBA Nadere Voorschriften WWFT (vragen 4 t/m 11) |
 | 8 | **Risicobeoordeling** — automatische scoring + Word-rapport downloaden |
@@ -24,6 +25,7 @@ Een interactieve compliance-tool voor het uitvoeren van cliëntenonderzoek confo
 ### Handleiding (apart tabblad)
 - **Interactief stappenplan** — klikbare tijdlijn met uitklapbare antwoorden per stap
 - **Volledige handleiding** — naslagwerk voor medewerkers (8 hoofdstukken, bronnen, praktijkvoorbeeld)
+- **Compliance officer** — altijd zichtbaar in de sidebar als aanspreekpunt voor vragen en twijfelgevallen
 
 ---
 
@@ -93,7 +95,7 @@ wwft-check/
 ## Roadmap
 
 ### Fase 1 — Verbreding van het onderzoek
-- Handmatige PEP-check vastleggen: veld voor medewerker om te noteren wat opgezocht is en wat de uitkomst was (geen duur abonnement nodig voor mkb-portefeuille)
+- ✅ Handmatige PEP-check vastleggen
 - Buitenlandse rechtsvorm als expliciete risicofactor in de beoordeling
 - Periodieke hertoetsing: signalering wanneer een dossier aan herbeoordeling toe is
 
