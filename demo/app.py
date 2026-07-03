@@ -208,7 +208,9 @@ def zoek_kvk(zoekterm: str, op_naam: bool = False) -> dict:
             return {"success": True, "resultaten": resultaten}
         return {"success": False, "error": "Geen resultaten gevonden."}
     except requests.exceptions.HTTPError as e:
-        return {"success": False, "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}"}
+        if e.response.status_code == 404:
+            return {"success": False, "niet_gevonden": True, "error": "Niet gevonden"}
+        return {"success": False, "error": f"KvK-service geeft een fout ({e.response.status_code}). Probeer het opnieuw."}
     except requests.exceptions.RequestException as e:
         return {"success": False, "error": str(e)}
 
@@ -889,7 +891,10 @@ if zoeken:
     with st.spinner("KvK raadplegen…"):
         zoek_result = zoek_kvk(zoekterm, op_naam=(zoektype == "Naam"))
     if not zoek_result["success"]:
-        st.error(f"Fout bij KvK-opvraging: {zoek_result['error']}")
+        if zoek_result.get("niet_gevonden"):
+            st.warning(f"Geen bedrijf gevonden voor **{zoekterm}**. Controleer de schrijfwijze of het KvK-nummer en probeer opnieuw.")
+        else:
+            st.error(zoek_result["error"])
         st.stop()
     for k in ["kvk_data", "basisprofiel", "functionarissen", "doel_aard",
               "personen_data", "screening_bedrijf", "screening_personen",
