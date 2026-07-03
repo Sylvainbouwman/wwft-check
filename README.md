@@ -90,6 +90,25 @@ wwft-check/
 
 ---
 
+## Roadmap
+
+### Fase 1 — Verbreding van het onderzoek
+- Handmatige PEP-check vastleggen: veld voor medewerker om te noteren wat opgezocht is en wat de uitkomst was (geen duur abonnement nodig voor mkb-portefeuille)
+- Buitenlandse rechtsvorm als expliciete risicofactor in de beoordeling
+- Periodieke hertoetsing: signalering wanneer een dossier aan herbeoordeling toe is
+
+### Fase 2 — Integratie met bestaande systemen
+- Koppeling met DMS/dossiersysteem (bijv. AFAS, Exact)
+- Exportformaat aanpasbaar per kantoor (huisstijl rapport)
+- Rolgebaseerde toegang: medewerker vs. compliance officer
+
+### Fase 3 — Beheer & toezicht
+- Auditlog voor BFT-controles
+- Dashboardoverzicht openstaande en afgeronde dossiers
+- Notificaties bij verlopen hertoetsingstermijn
+
+---
+
 ## Status
 
 **v0.3 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.
