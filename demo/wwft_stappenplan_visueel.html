@@ -67,6 +67,9 @@ function wfRender(){
       </div>
       <div class="wf-title" style="color:${s.dark}">${s.title}</div>
       <div class="wf-text">${s.text}</div>
+      <div style="margin-top:14px;font-size:13px;padding:8px 12px;background:rgba(255,255,255,0.65);border-radius:8px;color:${s.dark};display:inline-flex;align-items:center;gap:8px">
+        <i class="ti ti-message-question" aria-hidden="true"></i>${s.action}
+      </div>
     </div>`;
 }
 function wfGo(i){ wfIdx = i; wfRender(); }
