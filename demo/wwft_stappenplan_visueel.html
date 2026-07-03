@@ -1,24 +1,26 @@
 <h2 class="sr-only">Visueel, interactief stappenplan van het Wwft-cliëntenonderzoek met kleurcodering per categorie</h2>
 <style>
-.wf-track{position:relative;margin:0 0 1.75rem;padding:0 4px}
+.wf-track{position:relative;margin:0 0 1.25rem;padding:0 4px}
 .wf-line{position:absolute;top:19px;left:20px;right:20px;height:2px;background:var(--border)}
 .wf-line-fill{position:absolute;top:19px;left:20px;height:2px;background:var(--text-accent);transition:width .35s ease}
 .wf-nodes{display:flex;justify-content:space-between;position:relative}
 .wf-node{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;font-size:16px;transition:transform .2s,background .2s;background:var(--surface-1);color:var(--text-muted)}
 .wf-node.done{color:#fff}
 .wf-node.active{transform:scale(1.18)}
-.wf-hero{border-radius:12px;padding:1.75rem 1.75rem 2.25rem;position:relative;overflow:hidden}
-.wf-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;border-radius:999px;margin-bottom:14px}
-.wf-icon-big{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
-.wf-icon-big i{font-size:28px}
-.wf-title{font-size:18px;font-weight:500;margin-bottom:8px}
-.wf-text{font-size:14px;color:var(--text-secondary);line-height:1.65;max-width:520px}
-.wf-legend{display:flex;gap:18px;margin-top:1.25rem;flex-wrap:wrap}
+.wf-legend{display:flex;gap:18px;margin-bottom:1rem;flex-wrap:wrap}
 .wf-legend-item{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--text-secondary)}
 .wf-legend-dot{width:11px;height:11px;border-radius:50%}
-.wf-nav{display:flex;justify-content:space-between;margin-top:1.25rem;gap:12px}
+.wf-hero{border-radius:12px;padding:1.5rem 1.75rem 2rem;position:relative;overflow:hidden}
+.wf-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;border-radius:999px;margin-bottom:12px}
+.wf-title{font-size:18px;font-weight:500;margin-bottom:8px}
+.wf-text{font-size:14px;color:var(--text-secondary);line-height:1.65;max-width:520px}
+.wf-toggle{margin-top:14px;font-size:13px;padding:8px 12px;background:rgba(255,255,255,0.65);border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-align:left;width:100%;box-sizing:border-box}
+.wf-toggle:hover{background:rgba(255,255,255,0.9)}
+.wf-answer{margin-top:8px;font-size:13.5px;line-height:1.7;padding:12px 14px;background:rgba(255,255,255,0.82);border-radius:8px;color:#212529}
+.wf-nav{display:flex;justify-content:space-between;margin-top:1rem;gap:12px}
 .wf-nav button{flex:1}
 </style>
+
 <div class="wf-track">
   <div class="wf-line"></div>
   <div class="wf-line-fill" id="wf-line-fill"></div>
@@ -34,22 +36,75 @@
   <button onclick="wfMove(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i> vorige</button>
   <button onclick="wfMove(1)">volgende <i class="ti ti-chevron-right" aria-hidden="true"></i></button>
 </div>
+
 <script>
 const wfSteps = [
-  {icon:"ti-id", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C", title:"Identificatie en verificatie", text:"Cliënt vaststellen en verifiëren met een betrouwbaar document. Natuurlijk persoon: geldig ID. Rechtspersoon: uittreksel Handelsregister via KVK.", action:"Wat moet ik precies vastleggen bij identificatie?"},
-  {icon:"ti-target-arrow", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C", title:"Doel en aard van de relatie", text:"Waarom komt deze cliënt bij ons, en welke dienst gaan we leveren. Geeft een referentiekader om later afwijkend gedrag te herkennen.", action:"Geef een voorbeeld van hoe ik doel en aard vastleg"},
-  {icon:"ti-users-group", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C", title:"UBO-vaststelling", text:"Wie is de uiteindelijk belanghebbende, meer dan 25% eigendom of zeggenschap. Kantoren hebben nu geen directe toegang tot het UBO-register, vraag de cliënt om een gewaarmerkt uittreksel.", action:"Hoe vraag ik een gewaarmerkt UBO-uittreksel op?"},
-  {icon:"ti-alert-triangle", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806", title:"Risicoclassificatie", text:"Laag, regulier of verhoogd risico op basis van cliënt, land, product en transactieprofiel. Verhoogd risico vraagt om verscherpt onderzoek.", action:"Welke risicofactoren wegen het zwaarst mee?"},
-  {icon:"ti-user-search", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806", title:"PEP-screening", text:"Bekleedt de cliënt of UBO een politiek prominente functie, of een naaste daarvan. Zonder database: gerichte internetzoekopdracht, met vastlegging.", action:"Hoe voer ik een goede PEP-check uit via Google?"},
-  {icon:"ti-shield-check", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806", title:"Sanctielijst-screening", text:"Cliënt en UBO controleren tegen EU- en nationale sanctielijsten. Bij een treffer: geen actie richting cliënt, direct intern overleg.", action:"Waar controleer ik de EU-sanctielijst?"},
-  {icon:"ti-folder-check", cat:"borging", color:"#1D9E75", tint:"#E1F5EE", dark:"#085041", title:"Vastlegging in dossier", text:"Alle documenten, controles en conclusies vastleggen. Bij een BFT-controle moet het dossier zelfstandig aantonen dat het onderzoek is uitgevoerd.", action:"Wat hoort er minimaal in een Wwft-dossier te zitten?"},
-  {icon:"ti-refresh", cat:"borging", color:"#1D9E75", tint:"#E1F5EE", dark:"#085041", title:"Periodieke herbeoordeling", text:"Verhoogd risico: doorgaans jaarlijks. Regulier risico: minder frequent, bijvoorbeeld elke drie jaar, tenzij er een concrete aanleiding is.", action:"Hoe richt ik een herbeoordelingsschema in?"},
+  {
+    icon:"ti-id", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C",
+    title:"Identificatie en verificatie",
+    text:"Cliënt vaststellen en verifiëren met een betrouwbaar document. Natuurlijk persoon: geldig ID. Rechtspersoon: uittreksel Handelsregister via KVK.",
+    action:"Wat moet ik precies vastleggen bij identificatie?",
+    answer:"Leg vast: naam, geboortedatum, geboorteplaats, adres/woonplaats, soort identiteitsdocument, documentnummer, datum en plaats van uitgifte, en de datum waarop je het document hebt gezien. Bewaar géén kopie van het document (AVG) — de brongegevens zelf zijn voldoende. De WWFT Check Tool heeft hier een invulscherm voor."
+  },
+  {
+    icon:"ti-target-arrow", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C",
+    title:"Doel en aard van de relatie",
+    text:"Waarom komt deze cliënt bij ons, en welke dienst gaan we leveren. Geeft een referentiekader om later afwijkend gedrag te herkennen.",
+    action:"Geef een voorbeeld van hoe ik doel en aard vastleg",
+    answer:"Voorbeeld: 'Cliënt laat de jaarrekening opstellen en de btw-aangiftes verzorgen. Verwacht regulier factuurverkeer, geen internationale transacties. Zakelijke relatie gestart op verzoek van de cliënt na doorverwijzing.' Wees concreet — 'administratieve dienstverlening' alleen is te vaag voor een toezichthouder."
+  },
+  {
+    icon:"ti-users-group", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C",
+    title:"UBO-vaststelling",
+    text:"Wie is de uiteindelijk belanghebbende, meer dan 25% eigendom of zeggenschap. Kantoren hebben nu geen directe toegang tot het UBO-register — vraag de cliënt om een gewaarmerkt uittreksel.",
+    action:"Hoe vraag ik een gewaarmerkt UBO-uittreksel op?",
+    answer:"Vraag de cliënt dit zelf te regelen: inloggen op kvk.nl met eHerkenning → 'Mijn KVK' → 'UBO-opgave' → gewaarmerkt uittreksel bestellen (€ 2,85). Dit uittreksel lever je aan in het dossier. Vanaf 2026 breidt KVK de directe toegang gefaseerd uit naar WWFT-instellingen — houd berichtgeving van kvk.nl/ubo in de gaten."
+  },
+  {
+    icon:"ti-alert-triangle", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806",
+    title:"Risicoclassificatie",
+    text:"Laag, regulier of verhoogd risico op basis van cliënt, land, product en transactieprofiel. Verhoogd risico vraagt om verscherpt onderzoek.",
+    action:"Welke risicofactoren wegen het zwaarst mee?",
+    answer:"Zwaarst: sanctietreffer bij bedrijf of persoon (+10 punten), kritieke integriteitsrisico's (+10), EU/FATF hoog-risico land (+4), hoog-risico sector zoals vastgoed, crypto of kansspelen (+3). Daarna: niet-EU land (+1), bepaalde rechtsvormen als stichting of CV (+1), adverse media. De WWFT Check Tool berekent dit automatisch."
+  },
+  {
+    icon:"ti-user-search", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806",
+    title:"PEP-screening",
+    text:"Bekleedt de cliënt of UBO een politiek prominente functie, of een naaste daarvan. Zonder database: gerichte internetzoekopdracht, met vastlegging.",
+    action:"Hoe voer ik een goede PEP-check uit?",
+    answer:"Zoek op '[naam] politiek', '[naam] [land] minister' of '[naam] bestuurder overheid'. Controleer ook LinkedIn en Wikipedia. Noteer altijd wat je gezocht hebt, op welke datum, en wat het resultaat was — ook als er niets uitkomt. Een gedocumenteerde negatieve bevinding telt mee bij een BFT-controle."
+  },
+  {
+    icon:"ti-shield-check", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806",
+    title:"Sanctielijst-screening",
+    text:"Cliënt en UBO controleren tegen EU- en nationale sanctielijsten. Bij een treffer: geen actie richting cliënt, direct intern overleg.",
+    action:"Waar controleer ik de EU-sanctielijst?",
+    answer:"Officieel via webgate.ec.europa.eu/fsd/fsf — zoek op naam of geboortedatum. Voor de nationale terrorismelijst: rijksoverheid.nl/onderwerpen/internationale-sancties. De WWFT Check Tool doet dit automatisch via OpenSanctions (~40 bronnen tegelijk). Bij een treffer: stop, geen contact met de cliënt, en overleg direct met je compliance officer."
+  },
+  {
+    icon:"ti-folder-check", cat:"borging", color:"#1D9E75", tint:"#E1F5EE", dark:"#085041",
+    title:"Vastlegging in dossier",
+    text:"Alle documenten, controles en conclusies vastleggen. Bij een BFT-controle moet het dossier zelfstandig aantonen dat het onderzoek is uitgevoerd.",
+    action:"Wat hoort er minimaal in een Wwft-dossier?",
+    answer:"Minimaal: KvK-uittreksel, identificatiegegevens vertegenwoordiger (art. 33-velden), UBO-vaststelling met onderbouwing, doel en aard zakelijke relatie, uitkomst sanctie- en PEP-screening, risicoclassificatie met risicobepalende factoren, en het ondertekende WWFT-rapport. Sla dit minimaal 5 jaar na einde van de zakelijke relatie op."
+  },
+  {
+    icon:"ti-refresh", cat:"borging", color:"#1D9E75", tint:"#E1F5EE", dark:"#085041",
+    title:"Periodieke herbeoordeling",
+    text:"Verhoogd risico: doorgaans jaarlijks. Regulier risico: minder frequent, bijvoorbeeld elke drie jaar, tenzij er een concrete aanleiding is.",
+    action:"Hoe richt ik een herbeoordelingsschema in?",
+    answer:"Hoog risico: zet een jaarlijkse agendaherinnering aan het begin van het relatiebeheer. Regulier: elke 3 jaar. Stel ook een trigger in bij: bestuurswisseling, nieuwe UBO, adreswijziging, of afwijkende transacties. Gebruik je CRM of takenlijst — een gemiste herbeoordeling is een veelgemaakte fout bij BFT-controles."
+  },
 ];
+
 let wfIdx = 0;
+let wfOpen = false;
+
 function wfRender(){
   const nodesEl = document.getElementById('wf-nodes');
-  const fillEl = document.getElementById('wf-line-fill');
-  const heroEl = document.getElementById('wf-hero');
+  const fillEl  = document.getElementById('wf-line-fill');
+  const heroEl  = document.getElementById('wf-hero');
+  wfOpen = false;
   nodesEl.innerHTML = wfSteps.map((s,i)=>{
     const state = i===wfIdx ? 'active done' : (i<wfIdx ? 'done' : '');
     const bg = i<=wfIdx ? s.color : 'var(--surface-1)';
@@ -59,28 +114,33 @@ function wfRender(){
   const pct = (wfIdx/(wfSteps.length-1))*100;
   fillEl.style.width = `calc(${pct}% * (100% - 40px) / 100%)`;
   const s = wfSteps[wfIdx];
+  const esc = s.answer.replace(/`/g,'\\`');
   heroEl.innerHTML = `
     <div class="wf-hero" style="background:${s.tint}">
       <div class="wf-pill" style="background:${s.color};color:#fff">
         <i class="ti ${s.icon}" aria-hidden="true"></i>
-        stap ${wfIdx+1} van ${wfSteps.length} · ${s.cat}
+        stap ${wfIdx+1} van ${wfSteps.length} &middot; ${s.cat}
       </div>
       <div class="wf-title" style="color:${s.dark}">${s.title}</div>
       <div class="wf-text">${s.text}</div>
-      <button onclick="copyHint('${s.action.replace(/'/g,"\\'")}', this)" title="Klik om te kopiëren" style="margin-top:14px;font-size:13px;padding:8px 12px;background:rgba(255,255,255,0.65);border:none;border-radius:8px;color:${s.dark};cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-align:left">
-        <i class="ti ti-clipboard" aria-hidden="true"></i>${s.action}
+      <button class="wf-toggle" id="wf-toggle-btn" onclick="toggleAnswer()" style="color:${s.dark}">
+        <i class="ti ti-message-question" aria-hidden="true"></i>
+        <span style="flex:1">${s.action}</span>
+        <i class="ti ti-chevron-down" id="wf-chev" aria-hidden="true"></i>
       </button>
+      <div class="wf-answer" id="wf-answer-box" style="display:none">${s.answer}</div>
     </div>`;
 }
+
+function toggleAnswer(){
+  const box  = document.getElementById('wf-answer-box');
+  const chev = document.getElementById('wf-chev');
+  wfOpen = !wfOpen;
+  box.style.display  = wfOpen ? 'block' : 'none';
+  chev.className = wfOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+}
+
 function wfGo(i){ wfIdx = i; wfRender(); }
 function wfMove(d){ wfIdx = Math.max(0, Math.min(wfSteps.length-1, wfIdx+d)); wfRender(); }
-function copyHint(text, btn){
-  navigator.clipboard.writeText(text).then(function(){
-    var orig = btn.innerHTML;
-    btn.innerHTML = '<i class="ti ti-check"></i> Gekopieerd!';
-    btn.style.background = 'rgba(29,158,117,0.15)';
-    setTimeout(function(){ btn.innerHTML = orig; btn.style.background = 'rgba(255,255,255,0.65)'; }, 2000);
-  });
-}
 wfRender();
 </script>
