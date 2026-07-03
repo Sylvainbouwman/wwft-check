@@ -14,8 +14,8 @@
 .wf-title{font-size:18px;font-weight:500;margin-bottom:8px}
 .wf-text{font-size:14px;color:var(--text-secondary);line-height:1.65;max-width:520px}
 .wf-legend{display:flex;gap:18px;margin-top:1.25rem;flex-wrap:wrap}
-.wf-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary)}
-.wf-legend-dot{width:8px;height:8px;border-radius:50%}
+.wf-legend-item{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--text-secondary)}
+.wf-legend-dot{width:11px;height:11px;border-radius:50%}
 .wf-nav{display:flex;justify-content:space-between;margin-top:1.25rem;gap:12px}
 .wf-nav button{flex:1}
 </style>
@@ -65,7 +65,6 @@ function wfRender(){
         <i class="ti ${s.icon}" aria-hidden="true"></i>
         stap ${wfIdx+1} van ${wfSteps.length} · ${s.cat}
       </div>
-      <div class="wf-icon-big" style="background:${s.color}"><i class="ti ${s.icon}" aria-hidden="true" style="color:#fff"></i></div>
       <div class="wf-title" style="color:${s.dark}">${s.title}</div>
       <div class="wf-text">${s.text}</div>
     </div>`;
