@@ -490,7 +490,7 @@ def _rij(tabel, label: str, waarde):
 
 def genereer_word(kvk_data, basisprofiel, personen_data,
                   screening_bedrijf, screening_personen, media,
-                  integriteit_antwoorden, risico_klasse, score, factoren,
+                  integriteit_antwoorden, pep_handmatig, risico_klasse, score, factoren,
                   cdd_vorm, cdd_artikel, doel_aard, toelichting,
                   medewerker, referentie, nu) -> bytes:
     doc = Document()
@@ -763,6 +763,18 @@ def genereer_word(kvk_data, basisprofiel, personen_data,
         doc.add_paragraph("Geen persoonsscreening uitgevoerd.")
     doc.add_paragraph("")
 
+    # 5a. Handmatige PEP-check
+    doc.add_heading("5a. Handmatige PEP-check", 2)
+    t = doc.add_table(rows=0, cols=2)
+    t.style = "Table Grid"
+    _rij(t, "PEP-check uitgevoerd",
+         "Ja" if pep_handmatig.get("uitgevoerd") else "Nee / niet geregistreerd")
+    if pep_handmatig.get("datum"):
+        _rij(t, "Datum controle", pep_handmatig["datum"])
+    if pep_handmatig.get("toelichting"):
+        _rij(t, "Wat gecontroleerd / uitkomst", pep_handmatig["toelichting"])
+    doc.add_paragraph("")
+
     # 6. Sanctiescreening bedrijf
     doc.add_heading("6. Sanctie- en PEP-screening bedrijf (OpenSanctions)", 1)
     t = doc.add_table(rows=0, cols=2)
@@ -898,6 +910,7 @@ with st.sidebar:
         "doel":        "doel_aard"          in st.session_state,
         "personen":    "personen_data"      in st.session_state,
         "screening":   "screening_bedrijf"  in st.session_state,
+        "pep":         "pep_handmatig"      in st.session_state,
         "integriteit": "integriteitsvragen" in st.session_state,
     }
     st.markdown("**Voortgang**")
@@ -906,6 +919,7 @@ with st.sidebar:
         ("Doel en aard",       "doel"),
         ("Personen & UBO's",   "personen"),
         ("Screening",          "screening"),
+        ("PEP-check",          "pep"),
         ("Integriteitsvragen", "integriteit"),
         ("Risicobeoordeling",  "integriteit"),
         ("Rapport downloaden", "integriteit"),
@@ -1476,6 +1490,46 @@ else:
                 st.markdown(f"[Bekijk artikel]({r['url']})")
 
 # ──────────────────────────────────────────────
+# Stap 5b: Handmatige PEP-check
+# ──────────────────────────────────────────────
+
+st.divider()
+st.subheader("🕵️ Stap 5b: Handmatige PEP-check")
+st.caption("Politiek prominente personen (PEP) — vastlegging van de handmatige controle")
+
+if "pep_handmatig" not in st.session_state:
+    with st.form("pep_form"):
+        pep_uitgevoerd = st.checkbox("Handmatige PEP-check uitgevoerd (online of navraag bij cliënt)")
+        col1, col2 = st.columns([3, 1])
+        pep_toelichting = col1.text_area(
+            "Wat gecontroleerd en uitkomst",
+            placeholder="bijv. 'Gezocht op naam + Google. Geen politieke functie gevonden.' of 'Cliënt bevestigt geen PEP te zijn.'",
+            height=80,
+        )
+        pep_datum = col2.date_input("Datum controle", value=None)
+        submit_pep = st.form_submit_button("Bevestigen en doorgaan →", type="primary")
+
+    if submit_pep:
+        st.session_state["pep_handmatig"] = {
+            "uitgevoerd": pep_uitgevoerd,
+            "toelichting": pep_toelichting.strip(),
+            "datum": str(pep_datum) if pep_datum else "",
+        }
+        st.rerun()
+    st.stop()
+else:
+    pep_data = st.session_state["pep_handmatig"]
+    if pep_data.get("uitgevoerd"):
+        st.success(f"✅ PEP-check uitgevoerd{' (' + pep_data['datum'] + ')' if pep_data.get('datum') else ''}")
+        if pep_data.get("toelichting"):
+            st.caption(pep_data["toelichting"])
+    else:
+        st.warning("⚠️ Handmatige PEP-check niet geregistreerd")
+    if st.button("Wijzigen", key="wijzig_pep"):
+        st.session_state.pop("pep_handmatig", None)
+        st.rerun()
+
+# ──────────────────────────────────────────────
 # Stap 6: Integriteitsvragen
 # ──────────────────────────────────────────────
 
@@ -1588,11 +1642,12 @@ medewerker = st.session_state.get("doel_aard", {}).get("medewerker", "")
 doel_aard = st.session_state.get("doel_aard", {})
 personen_data = st.session_state.get("personen_data", [])
 integriteit_antwoorden = st.session_state.get("integriteitsvragen", {})
+pep_handmatig = st.session_state.get("pep_handmatig", {})
 
 word_bytes = genereer_word(
     kvk_data, basisprofiel, personen_data,
     screening_bedrijf, screening_personen, media,
-    integriteit_antwoorden, risico_klasse, score, factoren,
+    integriteit_antwoorden, pep_handmatig, risico_klasse, score, factoren,
     cdd_vorm, cdd_artikel, doel_aard, toelichting,
     medewerker, referentie, nu,
 )
