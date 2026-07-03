@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
 import os
 import pandas as pd
@@ -33,8 +34,40 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+/* Metrics */
 [data-testid="stMetricValue"] { font-size: 1rem !important; }
-.stAlert { margin-top: 0.5rem; }
+[data-testid="stMetricLabel"] { font-size: 0.78rem !important; color: #6c757d; }
+
+/* Alerts & spacing */
+.stAlert { margin-top: 0.4rem; border-radius: 8px !important; }
+
+/* Data editor */
+[data-testid="stDataEditorContainer"] { border-radius: 8px; overflow: hidden; border: 1px solid #dee2e6; }
+
+/* Forms */
+[data-testid="stForm"] { border: none !important; padding: 0 !important; }
+
+/* Download button full width */
+[data-testid="stDownloadButton"] > button { width: 100%; font-size: 1rem; padding: 0.6rem 1.2rem; }
+
+/* Divider spacing */
+hr { margin: 1.5rem 0 !important; }
+
+/* Step completed summary blocks */
+.summary-block {
+    background: #f8f9fa;
+    border-left: 4px solid #1D9E75;
+    border-radius: 0 8px 8px 0;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+/* Sidebar progress */
+.prog-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 0.82rem; line-height: 1.4; }
+.prog-done { color: #1D9E75; }
+.prog-todo { color: #adb5bd; }
+.prog-active { color: #378ADD; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -841,33 +874,104 @@ def genereer_word(kvk_data, basisprofiel, personen_data,
 # ──────────────────────────────────────────────
 
 with st.sidebar:
-    st.title("🔍 WWFT Check Tool")
-    st.caption("Wet ter voorkoming van witwassen en financieren van terrorisme")
-    st.divider()
+    st.markdown("## 🔍 WWFT Check Tool")
+    st.caption("Wet ter voorkoming van witwassen\nen financieren van terrorisme")
+
     if DEMO_MODUS:
-        st.warning("**Demo modus actief**\nGeen KVK_API_KEY gevonden. Voorbeeldgegevens worden gebruikt.")
+        st.warning("**Demo modus** — voorbeelddata")
     else:
         st.success("KvK API verbonden")
+
     st.divider()
-    st.markdown("**Stappen**")
-    st.markdown(
-        "1. Bedrijf zoeken\n"
-        "2. Bedrijfsgegevens\n"
-        "3. Doel en aard relatie\n"
-        "4. Personen en UBO's\n"
-        "5. Screening\n"
-        "6. Integriteitsvragen\n"
-        "7. Risicobeoordeling\n"
-        "8. Rapport (Word)"
+
+    _pagina = st.radio(
+        "Navigatie",
+        ["🔍 Cliëntenonderzoek", "📖 Handleiding"],
+        label_visibility="collapsed",
     )
+
     st.divider()
-    st.caption("v0.2 – Concept")
+
+    # Voortgang
+    _done = {
+        "kvk":         "kvk_data"          in st.session_state,
+        "doel":        "doel_aard"          in st.session_state,
+        "personen":    "personen_data"      in st.session_state,
+        "screening":   "screening_bedrijf"  in st.session_state,
+        "integriteit": "integriteitsvragen" in st.session_state,
+    }
+    st.markdown("**Voortgang**")
+    _stappen_ui = [
+        ("Bedrijf zoeken",     "kvk"),
+        ("Doel en aard",       "doel"),
+        ("Personen & UBO's",   "personen"),
+        ("Screening",          "screening"),
+        ("Integriteitsvragen", "integriteit"),
+        ("Risicobeoordeling",  "integriteit"),
+        ("Rapport downloaden", "integriteit"),
+    ]
+    _actief_geweest = False
+    for _lbl, _key in _stappen_ui:
+        if _done.get(_key):
+            st.markdown(f'<div class="prog-item prog-done">✅ {_lbl}</div>', unsafe_allow_html=True)
+        elif not _actief_geweest:
+            st.markdown(f'<div class="prog-item prog-active">▶ {_lbl}</div>', unsafe_allow_html=True)
+            _actief_geweest = True
+        else:
+            st.markdown(f'<div class="prog-item prog-todo">○ {_lbl}</div>', unsafe_allow_html=True)
+
+    st.divider()
+    st.caption("v0.3 – Concept")
+
+# ──────────────────────────────────────────────
+# Handleiding-pagina
+# ──────────────────────────────────────────────
+
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+if _pagina == "📖 Handleiding":
+    st.title("📖 Handleiding Wwft-cliëntenonderzoek")
+    st.caption("Praktische naslaggids voor medewerkers — versie 1")
+
+    tab_infographic, tab_tekst = st.tabs(["🗺️ Interactief stappenplan", "📄 Volledige handleiding"])
+
+    with tab_infographic:
+        st.markdown("Klik op een stap in de tijdlijn of gebruik de knoppen om door het proces te navigeren.")
+        _html_path = os.path.join(_APP_DIR, "wwft_stappenplan_visueel.html")
+        with open(_html_path, encoding="utf-8") as _f:
+            _fragment = _f.read()
+        _full_html = """<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/tabler-icons.min.css">
+<style>
+:root{--border:#dee2e6;--surface-1:#f1f3f5;--text-muted:#868e96;--text-accent:#378ADD;--text-secondary:#495057}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:16px 8px;background:#fff;color:#212529}
+button{cursor:pointer;padding:8px 18px;border:1px solid #dee2e6;border-radius:8px;background:#fff;font-size:14px;transition:background .15s}
+button:hover{background:#f1f3f5}
+</style>
+</head>
+<body>
+<script>function sendPrompt(){}</script>
+""" + _fragment + "\n</body>\n</html>"
+        components.html(_full_html, height=430, scrolling=False)
+
+    with tab_tekst:
+        _md_path = os.path.join(_APP_DIR, "wwft-handleiding-medewerkers_v1.md")
+        with open(_md_path, encoding="utf-8") as _f:
+            _md_content = _f.read()
+        st.markdown(_md_content)
+
+    st.stop()
 
 # ──────────────────────────────────────────────
 # Stap 1: Zoeken
 # ──────────────────────────────────────────────
 
-st.header("Cliëntenonderzoek starten")
+st.markdown("## Cliëntenonderzoek starten")
+st.caption("Zoek het bedrijf op in het Handelsregister om het onderzoek te starten.")
 
 with st.form("kvk_form"):
     col1, col2, col3 = st.columns([2, 1, 1])
@@ -1475,7 +1579,8 @@ toelichting = st.text_area(
 # ──────────────────────────────────────────────
 
 st.divider()
-st.subheader("📄 Stap 8: Rapport downloaden (Word)")
+st.subheader("📄 Stap 8: Rapport downloaden")
+st.caption("Het Word-rapport bevat alle stappen, identificatiegegevens, screeningsuitkomsten en de risicoclassificatie.")
 
 nu = datetime.now()
 referentie = f"WWFT-{st.session_state.get('kvk_nummer','?')}-{nu.strftime('%Y%m%d')}"

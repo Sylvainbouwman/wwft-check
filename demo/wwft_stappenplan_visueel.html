@@ -1,0 +1,77 @@
+<h2 class="sr-only">Visueel, interactief stappenplan van het Wwft-cliëntenonderzoek met kleurcodering per categorie</h2>
+<style>
+.wf-track{position:relative;margin:0 0 1.75rem;padding:0 4px}
+.wf-line{position:absolute;top:19px;left:20px;right:20px;height:2px;background:var(--border)}
+.wf-line-fill{position:absolute;top:19px;left:20px;height:2px;background:var(--text-accent);transition:width .35s ease}
+.wf-nodes{display:flex;justify-content:space-between;position:relative}
+.wf-node{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;font-size:16px;transition:transform .2s,background .2s;background:var(--surface-1);color:var(--text-muted)}
+.wf-node.done{color:#fff}
+.wf-node.active{transform:scale(1.18)}
+.wf-hero{border-radius:12px;padding:1.75rem;position:relative;overflow:hidden}
+.wf-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;border-radius:999px;margin-bottom:14px}
+.wf-icon-big{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
+.wf-icon-big i{font-size:28px}
+.wf-title{font-size:18px;font-weight:500;margin-bottom:8px}
+.wf-text{font-size:14px;color:var(--text-secondary);line-height:1.65;max-width:520px}
+.wf-legend{display:flex;gap:18px;margin-top:1.25rem;flex-wrap:wrap}
+.wf-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary)}
+.wf-legend-dot{width:8px;height:8px;border-radius:50%}
+.wf-nav{display:flex;justify-content:space-between;margin-top:1.25rem;gap:12px}
+.wf-nav button{flex:1}
+</style>
+<div class="wf-track">
+  <div class="wf-line"></div>
+  <div class="wf-line-fill" id="wf-line-fill"></div>
+  <div class="wf-nodes" id="wf-nodes"></div>
+</div>
+<div id="wf-hero"></div>
+<div class="wf-legend">
+  <div class="wf-legend-item"><span class="wf-legend-dot" style="background:#378ADD"></span>identificatie</div>
+  <div class="wf-legend-item"><span class="wf-legend-dot" style="background:#EF9F27"></span>risico</div>
+  <div class="wf-legend-item"><span class="wf-legend-dot" style="background:#1D9E75"></span>borging</div>
+</div>
+<div class="wf-nav">
+  <button onclick="wfMove(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i> vorige</button>
+  <button onclick="wfMove(1)">volgende <i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+</div>
+<script>
+const wfSteps = [
+  {icon:"ti-id", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C", title:"Identificatie en verificatie", text:"Cliënt vaststellen en verifiëren met een betrouwbaar document. Natuurlijk persoon: geldig ID. Rechtspersoon: uittreksel Handelsregister via KVK.", action:"Wat moet ik precies vastleggen bij identificatie?"},
+  {icon:"ti-target-arrow", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C", title:"Doel en aard van de relatie", text:"Waarom komt deze cliënt bij ons, en welke dienst gaan we leveren. Geeft een referentiekader om later afwijkend gedrag te herkennen.", action:"Geef een voorbeeld van hoe ik doel en aard vastleg"},
+  {icon:"ti-users-group", cat:"identificatie", color:"#378ADD", tint:"#E6F1FB", dark:"#0C447C", title:"UBO-vaststelling", text:"Wie is de uiteindelijk belanghebbende, meer dan 25% eigendom of zeggenschap. Kantoren hebben nu geen directe toegang tot het UBO-register, vraag de cliënt om een gewaarmerkt uittreksel.", action:"Hoe vraag ik een gewaarmerkt UBO-uittreksel op?"},
+  {icon:"ti-alert-triangle", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806", title:"Risicoclassificatie", text:"Laag, regulier of verhoogd risico op basis van cliënt, land, product en transactieprofiel. Verhoogd risico vraagt om verscherpt onderzoek.", action:"Welke risicofactoren wegen het zwaarst mee?"},
+  {icon:"ti-user-search", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806", title:"PEP-screening", text:"Bekleedt de cliënt of UBO een politiek prominente functie, of een naaste daarvan. Zonder database: gerichte internetzoekopdracht, met vastlegging.", action:"Hoe voer ik een goede PEP-check uit via Google?"},
+  {icon:"ti-shield-check", cat:"risico", color:"#EF9F27", tint:"#FAEEDA", dark:"#633806", title:"Sanctielijst-screening", text:"Cliënt en UBO controleren tegen EU- en nationale sanctielijsten. Bij een treffer: geen actie richting cliënt, direct intern overleg.", action:"Waar controleer ik de EU-sanctielijst?"},
+  {icon:"ti-folder-check", cat:"borging", color:"#1D9E75", tint:"#E1F5EE", dark:"#085041", title:"Vastlegging in dossier", text:"Alle documenten, controles en conclusies vastleggen. Bij een BFT-controle moet het dossier zelfstandig aantonen dat het onderzoek is uitgevoerd.", action:"Wat hoort er minimaal in een Wwft-dossier te zitten?"},
+  {icon:"ti-refresh", cat:"borging", color:"#1D9E75", tint:"#E1F5EE", dark:"#085041", title:"Periodieke herbeoordeling", text:"Verhoogd risico: doorgaans jaarlijks. Regulier risico: minder frequent, bijvoorbeeld elke drie jaar, tenzij er een concrete aanleiding is.", action:"Hoe richt ik een herbeoordelingsschema in?"},
+];
+let wfIdx = 0;
+function wfRender(){
+  const nodesEl = document.getElementById('wf-nodes');
+  const fillEl = document.getElementById('wf-line-fill');
+  const heroEl = document.getElementById('wf-hero');
+  nodesEl.innerHTML = wfSteps.map((s,i)=>{
+    const state = i===wfIdx ? 'active done' : (i<wfIdx ? 'done' : '');
+    const bg = i<=wfIdx ? s.color : 'var(--surface-1)';
+    const col = i<=wfIdx ? '#fff' : 'var(--text-muted)';
+    return `<button class="wf-node ${state}" style="background:${bg};color:${col}" onclick="wfGo(${i})" aria-label="Stap ${i+1}: ${s.title}"><i class="ti ${s.icon}" aria-hidden="true"></i></button>`;
+  }).join('');
+  const pct = (wfIdx/(wfSteps.length-1))*100;
+  fillEl.style.width = `calc(${pct}% * (100% - 40px) / 100%)`;
+  const s = wfSteps[wfIdx];
+  heroEl.innerHTML = `
+    <div class="wf-hero" style="background:${s.tint}">
+      <div class="wf-pill" style="background:${s.color};color:#fff">
+        <i class="ti ${s.icon}" aria-hidden="true"></i>
+        stap ${wfIdx+1} van ${wfSteps.length} · ${s.cat}
+      </div>
+      <div class="wf-icon-big" style="background:${s.color}"><i class="ti ${s.icon}" aria-hidden="true" style="color:#fff"></i></div>
+      <div class="wf-title" style="color:${s.dark}">${s.title}</div>
+      <div class="wf-text">${s.text}</div>
+      <button onclick="sendPrompt('${s.action}')" style="margin-top:14px;font-size:13px;background:#fff">${s.action} <i class="ti ti-arrow-right" aria-hidden="true" style="font-size:14px"></i></button>
+    </div>`;
+}
+function wfGo(i){ wfIdx = i; wfRender(); }
+function wfMove(d){ wfIdx = Math.max(0, Math.min(wfSteps.length-1, wfIdx+d)); wfRender(); }
+wfRender();
+</script>
