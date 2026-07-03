@@ -978,6 +978,16 @@ button:hover{background:#f1f3f5}
             _md_content = _f.read()
         st.markdown(_md_content)
 
+        st.divider()
+        st.markdown("### Over deze tool")
+        st.markdown(
+            "Deze tool is ontwikkeld ter ondersteuning van het Wwft-cliëntenonderzoek. "
+            "Voor vragen over de inhoud, uitzonderingen of twijfelgevallen kun je terecht bij de compliance officer."
+        )
+        st.markdown("**Compliance officer:** Yvonne Compliance")
+        st.markdown("**E-mail:** [compliance@dk.nl](mailto:compliance@dk.nl)")
+        st.caption("v0.3 — intern gebruik · niet geschikt voor productie zonder aanvullende beveiligingsmaatregelen")
+
     st.stop()
 
 # ──────────────────────────────────────────────
