@@ -937,8 +937,8 @@ with st.sidebar:
     st.divider()
     st.caption("v0.3 – Concept")
     st.markdown("**Compliance officer**")
-    st.markdown("Yvonne Compliance")
-    st.markdown("[compliance@dk.nl](mailto:compliance@dk.nl)")
+    st.markdown("Yvonne Harlaar")
+    st.markdown("[y.harlaar@dkaccountants.nl](mailto:y.harlaar@dkaccountants.nl)")
 
 # ──────────────────────────────────────────────
 # Handleiding-pagina
