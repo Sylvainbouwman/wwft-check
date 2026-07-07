@@ -1178,7 +1178,12 @@ if _pagina == "📖 Handleiding":
     st.title("📖 Handleiding Wwft-cliëntenonderzoek")
     st.caption("Praktische naslaggids voor medewerkers — versie 1")
 
-    tab_infographic, tab_tekst = st.tabs(["🗺️ Interactief stappenplan", "📄 Volledige handleiding"])
+    tab_infographic, tab_tekst, tab_ai, tab_bronnen = st.tabs([
+        "🗺️ Interactief stappenplan",
+        "📄 Volledige handleiding",
+        "🤖 Vraag & Antwoord",
+        "📚 Bronnen",
+    ])
 
     with tab_infographic:
         st.markdown("Klik op een stap in de tijdlijn of gebruik de knoppen om door het proces te navigeren.")
@@ -1209,6 +1214,117 @@ button:hover{background:#f1f3f5}
             _md_content = _f.read()
         st.markdown(_md_content)
 
+    # ── Tab: AI Vraag & Antwoord ──────────────────
+    with tab_ai:
+        st.subheader("🤖 Wwft Vraag & Antwoord")
+        st.caption(
+            "Stel een vraag over de Wwft — antwoorden zijn gebaseerd op het "
+            "RB Praktisch Handboek Wwft Basis (Register Belastingadviseurs, aug. 2024)."
+        )
+
+        _anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+        _chunks_path = os.path.join(_APP_DIR, "wwft_rb_chunks.json")
+
+        if not _anthropic_key:
+            st.info("ANTHROPIC_API_KEY niet ingesteld — stel deze in via Streamlit Secrets om AI Vraag & Antwoord te activeren.")
+        elif not os.path.exists(_chunks_path):
+            st.warning("Kennisbank niet gevonden (wwft_rb_chunks.json).")
+        else:
+            import json as _json
+            import anthropic as _anthropic
+
+            @st.cache_resource
+            def _laad_rb_chunks():
+                with open(_chunks_path, encoding="utf-8") as _f:
+                    return _json.load(_f)
+
+            def _zoek_chunks(vraag: str, chunks: list, top_k: int = 4) -> list:
+                woorden = [w.lower() for w in vraag.split() if len(w) > 3]
+                scores = [
+                    (sum(1 for w in woorden if w in c["tekst"].lower()), i)
+                    for i, c in enumerate(chunks)
+                ]
+                scores.sort(reverse=True)
+                return [chunks[i] for score, i in scores[:top_k] if score > 0]
+
+            _rb_chunks = _laad_rb_chunks()
+
+            with st.form("ai_vraag_form"):
+                _vraag = st.text_input(
+                    "Uw vraag",
+                    placeholder=(
+                        "bijv. 'Wanneer is verscherpt cliëntenonderzoek verplicht?' "
+                        "of 'Wat moet ik doen bij een PEP?'"
+                    ),
+                )
+                _stel = st.form_submit_button("Stel vraag →", type="primary")
+
+            if _stel and _vraag.strip():
+                _gevonden = _zoek_chunks(_vraag, _rb_chunks)
+                if not _gevonden:
+                    st.warning("Geen relevante passages gevonden — probeer andere zoektermen.")
+                else:
+                    _context = "\n\n---\n\n".join(
+                        f"[Pagina's {c['paginas']}]\n{c['tekst'][:1500]}"
+                        for c in _gevonden
+                    )
+                    with st.spinner("Antwoord zoeken…"):
+                        _client = _anthropic.Anthropic(api_key=_anthropic_key)
+                        _resp = _client.messages.create(
+                            model="claude-haiku-4-5-20251001",
+                            max_tokens=1024,
+                            system=(
+                                "Je bent een Wwft-specialist voor accountants en belastingadviseurs "
+                                "in Nederland. Beantwoord de vraag uitsluitend op basis van de "
+                                "aangeleverde passages uit het RB Praktisch Handboek Wwft. "
+                                "Geef een helder, praktisch antwoord en verwijs waar relevant naar "
+                                "artikelnummers. Als de passages onvoldoende informatie bevatten, "
+                                "zeg dat dan eerlijk."
+                            ),
+                            messages=[{
+                                "role": "user",
+                                "content": (
+                                    f"Relevante passages uit het RB Praktisch Handboek Wwft:\n\n"
+                                    f"{_context}\n\nVraag: {_vraag}"
+                                ),
+                            }],
+                        )
+                    st.markdown(_resp.content[0].text)
+                    with st.expander("📖 Gebruikte bronpassages"):
+                        for _c in _gevonden:
+                            st.caption(f"Pagina's {_c['paginas']}")
+                            st.text(_c["tekst"][:400] + "…")
+
+    # ── Tab: Bronnen ─────────────────────────────
+    with tab_bronnen:
+        st.subheader("📚 Achtergrond & bronnen")
+
+        st.markdown("**DK Accountants — Wwft-cyclus overzicht**")
+        _dk_path = os.path.join(_APP_DIR, "de_wwft_cyclus_dk.pdf")
+        if os.path.exists(_dk_path):
+            with open(_dk_path, "rb") as _f:
+                st.download_button(
+                    label="⬇️ Download: De Wwft-Cyclus (DK Accountants & Adviseurs)",
+                    data=_f.read(),
+                    file_name="de_wwft_cyclus_dk.pdf",
+                    mime="application/pdf",
+                )
+        st.caption(
+            "Overzicht van de vijf fasen van de Wwft-cyclus: van clientacceptatie tot melding bij FIU-Nederland."
+        )
+
+        st.divider()
+        st.markdown("**Officiële bronnen (externe links)**")
+        st.markdown(
+            "- [RB Praktisch Handboek Wwft Basis](https://www.rb.nl) — "
+            "voor belastingadviseurs en accountants *(gebruikt als kennisbron voor Vraag & Antwoord)*\n"
+            "- [FIU-Nederland meldportaal](https://www.fiu-nederland.nl) — "
+            "ongebruikelijke transacties melden\n"
+            "- [Bureau Financieel Toezicht (BFT)](https://www.bureaufinancieeeltoezicht.nl) — "
+            "toezichthouder voor accountants en belastingadviseurs\n"
+            "- [AFM Leidraad Wwft en Sanctiewet 2024](https://www.afm.nl) — "
+            "let op: geschreven voor beleggingsondernemingen, niet voor accountants"
+        )
 
     st.stop()
 

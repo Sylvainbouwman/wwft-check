@@ -27,6 +27,8 @@ Een interactieve compliance-tool voor het uitvoeren van cliëntenonderzoek confo
 ### Handleiding (apart tabblad)
 - **Interactief stappenplan** — klikbare tijdlijn met uitklapbare antwoorden per stap
 - **Volledige handleiding** — naslagwerk voor medewerkers (8 hoofdstukken, bronnen, praktijkvoorbeeld)
+- **AI Vraag & Antwoord** — stel een vraag over de Wwft; antwoord op basis van RB Praktisch Handboek Wwft (Claude Haiku via Anthropic API)
+- **Bronnen** — downloadknop DK Wwft-cyclus PDF + links naar FIU-NL, BFT, AFM, RB
 - **Compliance officer** — altijd zichtbaar in de sidebar als aanspreekpunt voor vragen en twijfelgevallen
 
 ---
@@ -52,8 +54,9 @@ De tool detecteert automatisch de rechtsvorm via KvK en toont het juiste formuli
 |-----|---------|--------|
 | [KvK Handelsregister](https://developers.kvk.nl) | Bedrijfsgegevens opzoeken | Gratis (registratie vereist) |
 | [OpenSanctions](https://www.opensanctions.org/api/) | Sanctie- en PEP-screening | Gratis t/m 100 req/dag |
+| [Anthropic API](https://www.anthropic.com) | AI Vraag & Antwoord in handleiding | Betaald; optioneel |
 
-Zonder API-sleutels start de tool automatisch in **demo modus** met voorbeelddata.
+Zonder API-sleutels start de tool automatisch in **demo modus** met voorbeelddata. De AI Vraag & Antwoord-functie blijft inactief zonder Anthropic API-sleutel.
 
 ---
 
@@ -85,10 +88,12 @@ De app is bereikbaar op [http://localhost:8501](http://localhost:8501).
 ```
 wwft-check/
 ├── demo/
-│   ├── app.py                          # Streamlit-applicatie (hoofdbestand)
-│   ├── requirements.txt                # Python-afhankelijkheden
+│   ├── app.py                               # Streamlit-applicatie (hoofdbestand)
+│   ├── requirements.txt                     # Python-afhankelijkheden
 │   ├── wwft-handleiding-medewerkers_v1.md   # Handleiding voor medewerkers
-│   └── wwft_stappenplan_visueel.html   # Interactief HTML-stappenplan
+│   ├── wwft_stappenplan_visueel.html        # Interactief HTML-stappenplan
+│   ├── wwft_rb_chunks.json                  # RB Handboek Wwft kennisbank (40 chunks)
+│   └── de_wwft_cyclus_dk.pdf               # DK Accountants Wwft-cyclus overzicht
 └── README.md
 ```
 
@@ -105,8 +110,9 @@ wwft-check/
 - ✅ FIU-meldingsbeoordeling (stap 9): vastlegging aanleiding, type, omschrijving, intern beraad en Melder ID; checklist in UI en rapport; tipping off verbod prominently vermeld
 - ✅ Vloer MIDDEN voor MKB-cliënten: LAAG alleen bij expliciete art. 6 Wwft-kwalificatie (beursgenoteerd / overheid / financiële instelling)
 - ✅ Buitenlandse rechtsvorm als risicofactor (+2 score): waarschuwing in stap 2, factor in risicobeoordeling, UBO-register toelichting
-
 - ✅ Opdrachtbevestiging template (Fase 2, NV COS 4410): apart Word-document met alle Wwft-clausules, naast WWFT-rapport downloadbaar in stap 9
+- ✅ AI Vraag & Antwoord in handleiding: keyword-RAG op RB Praktisch Handboek Wwft (40 chunks) + Claude Haiku voor antwoorden
+- ✅ Bronnen-tab: downloadknop DK Wwft-cyclus PDF + links naar FIU-NL, BFT, AFM, RB
 
 ### Fase 2 — Integratie met bestaande systemen
 - Koppeling met DMS/dossiersysteem (bijv. AFAS, Exact)
@@ -124,4 +130,4 @@ wwft-check/
 
 ## Status
 
-**v0.8 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.
+**v0.9 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.

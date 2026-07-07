@@ -39,6 +39,17 @@ We hebben dit als volgt opgelost: **MIDDEN is nu het minimum voor alle cliënten
 
 ---
 
+**Over de bijgevoegde PDF's**
+
+Je stuurde drie documenten mee. Twee ervan zijn voor ons direct bruikbaar:
+
+- *De Wwft-cyclus (DK Accountants)* — uitstekend overzicht. We hebben dit document opgenomen als downloadknop in de handleiding-tab van de tool, zodat medewerkers er snel bij kunnen.
+- *RB Praktisch Handboek Wwft Basis* — dit is de meest relevante referentie voor ons, en hij dient nu ook als kennisbron voor de nieuwe AI Vraag & Antwoord-functie in de handleiding.
+
+Het derde document — de *AFM Leidraad Wwft en Sanctiewet 2024* — is inhoudelijk interessant, maar niet direct leidend voor ons. Die leidraad is specifiek geschreven voor beleggingsondernemingen die onder AFM-toezicht staan. DK Accountants & Join Administraties vallen onder het toezicht van het Bureau Financieel Toezicht (BFT), niet de AFM. We hebben er een verwijzing naar opgenomen in de bronnenlijst (met een duidelijke kanttekening over de doelgroep), maar we baseren de tool op het RB-handboek.
+
+---
+
 **Wat staat er nog op de lijst?**
 
 - Koppeling met AFAS/Exact (DMS-integratie) — volgende fase
