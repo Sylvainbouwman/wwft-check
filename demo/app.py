@@ -4,6 +4,7 @@ import requests
 import os
 import pandas as pd
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from io import BytesIO
 from dotenv import load_dotenv
 from duckduckgo_search import DDGS
@@ -773,6 +774,13 @@ def genereer_word(kvk_data, basisprofiel, personen_data,
         _rij(t, "Datum controle", pep_handmatig["datum"])
     if pep_handmatig.get("toelichting"):
         _rij(t, "Wat gecontroleerd / uitkomst", pep_handmatig["toelichting"])
+    pep_hit = pep_handmatig.get("pep_aangetroffen", False)
+    _rij(t, "PEP aangetroffen", "Ja" if pep_hit else "Nee")
+    if pep_hit:
+        _rij(t, "Bron van vermogen (art. 8 lid 4 Wwft)",
+             pep_handmatig.get("bron_vermogen") or "[niet ingevuld]")
+        _rij(t, "Bron van middelen (art. 8 lid 4 Wwft)",
+             pep_handmatig.get("bron_middelen") or "[niet ingevuld]")
     doc.add_paragraph("")
 
     # 6. Sanctiescreening bedrijf
@@ -847,14 +855,32 @@ def genereer_word(kvk_data, basisprofiel, personen_data,
     doc.add_heading("10. Conclusie en vervolgactie", 1)
     if risico_klasse == "HOOG":
         conclusie = "Verscherpt cliëntenonderzoek vereist conform art. 8 WWFT. Melding compliance officer verplicht."
+        hertoetsing = nu + relativedelta(months=6)
     elif risico_klasse == "MIDDEN":
         conclusie = "Standaard cliëntenonderzoek van toepassing. Verhoogde alertheid gedurende de relatie aanbevolen."
+        hertoetsing = nu + relativedelta(years=1)
     else:
         conclusie = "Standaard cliëntenonderzoek van toepassing."
+        hertoetsing = nu + relativedelta(years=3)
     doc.add_paragraph(conclusie)
+
+    if risico_klasse == "HOOG":
+        p_tip = doc.add_paragraph()
+        run_tip = p_tip.add_run(
+            "⚠️ TIPPING OFF VERBOD (art. 23 Wwft): U mag de cliënt NIET informeren dat er "
+            "een melding is gedaan of overwogen wordt bij FIU-Nederland. Ook intern overleg "
+            "over een mogelijke melding is onderworpen aan geheimhouding. Schending is strafbaar."
+        )
+        run_tip.bold = True
+        run_tip.font.color.rgb = RGBColor(0xC0, 0x00, 0x00)
+
     t = doc.add_table(rows=0, cols=2)
     t.style = "Table Grid"
-    _rij(t, "Volgende hertoetsing", nu.strftime("%d-%m-") + str(nu.year + 1))
+    _rij(t, "Volgende hertoetsing", hertoetsing.strftime("%d-%m-%Y"))
+    _rij(t, "Hertoetsingstermijn",
+         "6 maanden (hoog risico)" if risico_klasse == "HOOG"
+         else "1 jaar (midden risico)" if risico_klasse == "MIDDEN"
+         else "3 jaar (laag risico)")
     doc.add_paragraph("")
 
     # 11. Akkoordverklaring
@@ -871,6 +897,16 @@ def genereer_word(kvk_data, basisprofiel, personen_data,
         rij.cells[2].text = ""
         rij.cells[3].text = ""
     doc.add_paragraph("")
+
+    p_bw = doc.add_paragraph()
+    run_bw = p_bw.add_run(
+        "Bewaarplicht: dit dossier dient minimaal 7 jaar na afsluiting van de opdracht te worden "
+        "bewaard (art. 33 Wwft jo. beroepsreglementering NBA/RB). Bij een fiscale navorderingstermijn "
+        "van 12 jaar geldt die langere termijn."
+    )
+    run_bw.font.size = Pt(8)
+    run_bw.font.color.rgb = RGBColor(0x60, 0x60, 0x60)
+    run_bw.italic = True
 
     p = doc.add_paragraph()
     run = p.add_run(f"Gegenereerd door WWFT Check Tool  —  {referentie}  —  {nu.strftime('%d-%m-%Y %H:%M')}")
@@ -1511,6 +1547,22 @@ if "pep_handmatig" not in st.session_state:
             height=80,
         )
         pep_datum = col2.date_input("Datum controle", value=None)
+        st.markdown("---")
+        pep_aangetroffen = st.checkbox(
+            "PEP aangetroffen (politiek prominent persoon geïdentificeerd)",
+            help="Vink aan als een UBO, bestuurder of vertegenwoordiger als PEP is aangemerkt.",
+        )
+        st.caption("Bij een PEP zijn bron van vermogen én bron van middelen verplicht vast te leggen (art. 8 lid 4 Wwft).")
+        pep_bron_vermogen = st.text_area(
+            "Bron van vermogen (verplicht bij PEP)",
+            placeholder="bijv. 'Erfenis van vader, aangetoond via notariële akte' of 'Opgebouwd vermogen uit eigen onderneming'",
+            height=68,
+        )
+        pep_bron_middelen = st.text_area(
+            "Bron van middelen (verplicht bij PEP)",
+            placeholder="bijv. 'Salaris als directeur-grootaandeelhouder' of 'Dividenduitkering holding'",
+            height=68,
+        )
         submit_pep = st.form_submit_button("Bevestigen en doorgaan →", type="primary")
 
     if submit_pep:
@@ -1518,6 +1570,9 @@ if "pep_handmatig" not in st.session_state:
             "uitgevoerd": pep_uitgevoerd,
             "toelichting": pep_toelichting.strip(),
             "datum": str(pep_datum) if pep_datum else "",
+            "pep_aangetroffen": pep_aangetroffen,
+            "bron_vermogen": pep_bron_vermogen.strip(),
+            "bron_middelen": pep_bron_middelen.strip(),
         }
         st.rerun()
     st.stop()
@@ -1529,6 +1584,16 @@ else:
             st.caption(pep_data["toelichting"])
     else:
         st.warning("⚠️ Handmatige PEP-check niet geregistreerd")
+    if pep_data.get("pep_aangetroffen"):
+        st.error("🔴 PEP aangetroffen — verscherpt cliëntenonderzoek van toepassing (art. 8 lid 4 Wwft)")
+        if pep_data.get("bron_vermogen"):
+            st.caption(f"Bron vermogen: {pep_data['bron_vermogen']}")
+        else:
+            st.warning("⚠️ Bron van vermogen nog niet vastgelegd (verplicht bij PEP)")
+        if pep_data.get("bron_middelen"):
+            st.caption(f"Bron middelen: {pep_data['bron_middelen']}")
+        else:
+            st.warning("⚠️ Bron van middelen nog niet vastgelegd (verplicht bij PEP)")
     if st.button("Wijzigen", key="wijzig_pep"):
         st.session_state.pop("pep_handmatig", None)
         st.rerun()
@@ -1623,8 +1688,27 @@ with col2:
 
 if risico_klasse == "HOOG":
     st.error("⚠️ Verscherpt cliëntenonderzoek vereist (art. 8 WWFT). Melding compliance officer verplicht.")
+    st.error(
+        "🔒 TIPPING OFF VERBOD (art. 23 Wwft): informeer de cliënt NIET over een (mogelijke) "
+        "melding bij FIU-Nederland. Ook intern overleg hierover is geheim. Schending is strafbaar."
+    )
 elif risico_klasse == "MIDDEN":
     st.warning("Verhoogde alertheid gedurende de relatie aanbevolen.")
+
+nu_preview = datetime.now()
+if risico_klasse == "HOOG":
+    hertoetsing_preview = nu_preview + relativedelta(months=6)
+    termijn_label = "6 maanden (hoog risico)"
+elif risico_klasse == "MIDDEN":
+    hertoetsing_preview = nu_preview + relativedelta(years=1)
+    termijn_label = "1 jaar (midden risico)"
+else:
+    hertoetsing_preview = nu_preview + relativedelta(years=3)
+    termijn_label = "3 jaar (laag risico)"
+st.info(
+    f"📅 Volgende hertoetsing: **{hertoetsing_preview.strftime('%d-%m-%Y')}** ({termijn_label})"
+    " — vastgelegd in het rapport."
+)
 
 toelichting = st.text_area(
     "Toelichting / motivatie medewerker (optioneel)",
@@ -1638,7 +1722,10 @@ toelichting = st.text_area(
 
 st.divider()
 st.subheader("📄 Stap 8: Rapport downloaden")
-st.caption("Het Word-rapport bevat alle stappen, identificatiegegevens, screeningsuitkomsten en de risicoclassificatie.")
+st.caption(
+    "Het Word-rapport bevat alle stappen, identificatiegegevens, screeningsuitkomsten en de risicoclassificatie. "
+    "Bewaarplicht: minimaal 7 jaar na afsluiting opdracht (art. 33 Wwft)."
+)
 
 nu = datetime.now()
 referentie = f"WWFT-{st.session_state.get('kvk_nummer','?')}-{nu.strftime('%Y%m%d')}"

@@ -96,8 +96,11 @@ wwft-check/
 
 ### Fase 1 — Verbreding van het onderzoek
 - ✅ Handmatige PEP-check vastleggen
+- ✅ PEP verscherpt onderzoek: bron van vermogen + bron van middelen vastleggen (art. 8 lid 4 Wwft)
+- ✅ Tipping off verbod (art. 23 Wwft): waarschuwing in UI en rapport bij hoog-risico uitkomst
+- ✅ Bewaarplicht 7 jaar: vermeld in rapport en stap 8 (art. 33 Wwft)
+- ✅ Hertoetsingstermijn op basis van risicoclassificatie: 6 mnd (hoog) / 1 jaar (midden) / 3 jaar (laag)
 - Buitenlandse rechtsvorm als expliciete risicofactor in de beoordeling
-- Periodieke hertoetsing: signalering wanneer een dossier aan herbeoordeling toe is
 
 ### Fase 2 — Integratie met bestaande systemen
 - Koppeling met DMS/dossiersysteem (bijv. AFAS, Exact)
@@ -105,6 +108,8 @@ wwft-check/
 - Rolgebaseerde toegang: medewerker vs. compliance officer
 
 ### Fase 3 — Beheer & toezicht
+- FIU-melding workflow: medewerker begeleiden bij meldprocedure (incl. Melder ID, geheimhouding)
+- Opdrachtbevestiging template met Wwft-clausules (NV COS 4410)
 - Auditlog voor BFT-controles
 - Dashboardoverzicht openstaande en afgeronde dossiers
 - Notificaties bij verlopen hertoetsingstermijn
@@ -113,4 +118,4 @@ wwft-check/
 
 ## Status
 
-**v0.3 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.
+**v0.4 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.
