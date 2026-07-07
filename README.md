@@ -106,6 +106,8 @@ wwft-check/
 - ✅ Vloer MIDDEN voor MKB-cliënten: LAAG alleen bij expliciete art. 6 Wwft-kwalificatie (beursgenoteerd / overheid / financiële instelling)
 - ✅ Buitenlandse rechtsvorm als risicofactor (+2 score): waarschuwing in stap 2, factor in risicobeoordeling, UBO-register toelichting
 
+- ✅ Opdrachtbevestiging template (Fase 2, NV COS 4410): apart Word-document met alle Wwft-clausules, naast WWFT-rapport downloadbaar in stap 9
+
 ### Fase 2 — Integratie met bestaande systemen
 - Koppeling met DMS/dossiersysteem (bijv. AFAS, Exact)
 - Exportformaat aanpasbaar per kantoor (huisstijl rapport)
@@ -122,4 +124,4 @@ wwft-check/
 
 ## Status
 
-**v0.7 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.
+**v0.8 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.

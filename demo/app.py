@@ -972,6 +972,142 @@ def genereer_word(kvk_data, basisprofiel, personen_data,
     return buf.getvalue()
 
 # ──────────────────────────────────────────────
+# Opdrachtbevestiging genereren
+# ──────────────────────────────────────────────
+
+def genereer_opdrachtbevestiging(kvk_data: dict, basisprofiel: dict, doel_aard: dict, nu: datetime) -> bytes:
+    doc = Document()
+    for section in doc.sections:
+        section.top_margin = Cm(2)
+        section.bottom_margin = Cm(2)
+        section.left_margin = Cm(2.5)
+        section.right_margin = Cm(2.5)
+
+    naam = kvk_data.get("naam", "[cliëntnaam]")
+    kvk_nr = kvk_data.get("kvkNummer", "")
+    adres = get_volledig_adres(basisprofiel) or adres_str(kvk_data) or "[adres]"
+    rechtsvorm = get_rechtsvorm(basisprofiel)
+    dienstverlening = doel_aard.get("dienstverlening", "[type dienstverlening]")
+    medewerker = doel_aard.get("medewerker", "")
+    jaar = str(nu.year)
+
+    # Briefhoofd
+    h = doc.add_heading("Opdrachtbevestiging", 0)
+    h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    doc.add_paragraph("")
+    t_meta = doc.add_table(rows=0, cols=2)
+    t_meta.style = "Table Grid"
+    _rij(t_meta, "Datum", nu.strftime("%d-%m-%Y"))
+    _rij(t_meta, "Aan", f"{naam}\n{adres}\nKvK {kvk_nr}")
+    _rij(t_meta, "Betreft", f"Opdrachtbevestiging {dienstverlening} — {jaar}")
+    _rij(t_meta, "Uitvoerder", medewerker or "[naam medewerker]")
+    doc.add_paragraph("")
+
+    doc.add_paragraph(
+        f"Geachte relatie,\n\n"
+        f"Wij bevestigen hierbij onze opdracht voor {dienstverlening.lower()} ten behoeve van "
+        f"{naam} ({rechtsvorm}, KvK {kvk_nr}) voor het boekjaar / de periode {jaar}. "
+        f"Op deze opdracht zijn onze algemene voorwaarden van toepassing."
+    )
+    doc.add_paragraph("")
+
+    # 1. Aard en doel
+    doc.add_heading("1. Aard en doel van de opdracht", 1)
+    doc.add_paragraph(
+        f"De opdracht betreft {dienstverlening.lower()} conform de daarvoor geldende beroepsreglementering "
+        f"(waaronder NV COS 4410 voor samenstellingsopdrachten). De reikwijdte van de werkzaamheden "
+        f"en de wederzijdse verantwoordelijkheden zijn nader omschreven in de bijlage bij deze brief."
+    )
+    doc.add_paragraph("")
+
+    # 2. Wwft-clausules
+    doc.add_heading("2. Verplichtingen op grond van de Wwft", 1)
+    doc.add_paragraph(
+        "Op onze dienstverlening is de Wet ter voorkoming van witwassen en financieren van terrorisme "
+        "(Wwft) van toepassing. Dit brengt de volgende verplichtingen en afspraken met zich mee."
+    )
+
+    doc.add_heading("2.1  Cliëntenonderzoek (art. 3 Wwft)", 2)
+    doc.add_paragraph(
+        "Wij zijn verplicht uw identiteit en die van de uiteindelijk belanghebbenden (UBO's) vast te "
+        "stellen en te verifiëren vóór aanvang van de dienstverlening, en dit periodiek te actualiseren. "
+        "Wij leggen de uitkomsten van dit onderzoek vast in een dossier."
+    )
+
+    doc.add_heading("2.2  Meldplicht ongebruikelijke transacties (art. 16 Wwft)", 2)
+    doc.add_paragraph(
+        "Wij zijn wettelijk verplicht ongebruikelijke transacties onverwijld te melden bij de "
+        "Financiële inlichtingen eenheid (FIU-Nederland). Een melding kan ook betrekking hebben op "
+        "situaties waarbij het cliëntenonderzoek niet het vereiste resultaat heeft opgeleverd of "
+        "waarbij de zakelijke relatie wordt beëindigd wegens vermoedens van witwassen of "
+        "terrorismefinanciering."
+    )
+
+    doc.add_heading("2.3  Tipping off verbod (art. 23 Wwft)", 2)
+    p_tip = doc.add_paragraph(
+        "Wij zijn wettelijk verboden u te informeren over een gedane of voorgenomen melding bij "
+        "FIU-Nederland, of over intern overleg hieromtrent. Dit verbod geldt ook voor medewerkers "
+        "van ons kantoor. Schending hiervan is strafbaar."
+    )
+
+    doc.add_heading("2.4  Medewerking cliënt", 2)
+    doc.add_paragraph(
+        "U verplicht zich ons alle informatie en documentatie te verstrekken die wij redelijkerwijs "
+        "nodig hebben voor de uitvoering van onze Wwft-verplichtingen, waaronder identificatiedocumenten "
+        "van vertegenwoordigers en UBO's, en informatie over de herkomst van vermogen en middelen "
+        "indien van toepassing."
+    )
+
+    doc.add_heading("2.5  Opschorting en beëindiging (art. 5 Wwft)", 2)
+    doc.add_paragraph(
+        "Indien u niet of onvoldoende meewerkt aan ons cliëntenonderzoek, of indien wij de zakelijke "
+        "relatie anderszins niet kunnen voortzetten op grond van de Wwft, zijn wij gerechtigd onze "
+        "dienstverlening op te schorten of te beëindigen. Wij zijn in dat geval niet aansprakelijk "
+        "voor eventuele schade."
+    )
+
+    doc.add_heading("2.6  Bewaarplicht (art. 33 Wwft)", 2)
+    doc.add_paragraph(
+        "Wij bewaren de gegevens uit het cliëntenonderzoek minimaal vijf jaar na beëindiging van de "
+        "zakelijke relatie. Op grond van onze beroepsreglementering geldt een bewaartermijn van "
+        "minimaal zeven jaar na afsluiting van het dossier."
+    )
+    doc.add_paragraph("")
+
+    # 3. Akkoordverklaring
+    doc.add_heading("3. Akkoordverklaring", 1)
+    doc.add_paragraph(
+        "Door ondertekening van deze opdrachtbevestiging verklaart u kennis te hebben genomen van "
+        "bovenstaande voorwaarden en hiermee akkoord te gaan."
+    )
+    doc.add_paragraph("")
+    t_sign = doc.add_table(rows=0, cols=4)
+    t_sign.style = "Table Grid"
+    hr = t_sign.add_row()
+    for i, h_tekst in enumerate(["Partij", "Naam", "Datum", "Handtekening"]):
+        hr.cells[i].paragraphs[0].add_run(h_tekst).bold = True
+    for partij in [("Kantoor", medewerker or ""), ("Cliënt", naam)]:
+        rij = t_sign.add_row()
+        rij.cells[0].text = partij[0]
+        rij.cells[1].text = partij[1]
+        rij.cells[2].text = ""
+        rij.cells[3].text = ""
+    doc.add_paragraph("")
+
+    p_footer = doc.add_paragraph()
+    run_footer = p_footer.add_run(
+        f"Gegenereerd door WWFT Check Tool  —  KvK {kvk_nr}  —  {nu.strftime('%d-%m-%Y %H:%M')}"
+    )
+    run_footer.font.size = Pt(8)
+    run_footer.font.color.rgb = RGBColor(0x80, 0x80, 0x80)
+
+    buf = BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# ──────────────────────────────────────────────
 # Sidebar
 # ──────────────────────────────────────────────
 
@@ -1919,10 +2055,25 @@ word_bytes = genereer_word(
 )
 
 bestandsnaam = f"wwft_{st.session_state.get('kvk_nummer','check')}_{nu.strftime('%Y%m%d_%H%M')}.docx"
-st.download_button(
-    label="⬇️ Download WWFT-rapport (Word)",
-    data=word_bytes,
-    file_name=bestandsnaam,
-    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    type="primary",
-)
+
+col_dl1, col_dl2 = st.columns(2)
+with col_dl1:
+    st.download_button(
+        label="⬇️ Download WWFT-rapport (Word)",
+        data=word_bytes,
+        file_name=bestandsnaam,
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        type="primary",
+    )
+
+with col_dl2:
+    ob_bytes = genereer_opdrachtbevestiging(kvk_data, basisprofiel, doel_aard, nu)
+    ob_naam = f"opdrachtbevestiging_{st.session_state.get('kvk_nummer','check')}_{nu.strftime('%Y%m%d')}.docx"
+    st.download_button(
+        label="⬇️ Download opdrachtbevestiging (Word)",
+        data=ob_bytes,
+        file_name=ob_naam,
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        type="secondary",
+        help="Opdrachtbevestiging met Wwft-clausules conform NV COS 4410 — voor ondertekening door cliënt",
+    )
