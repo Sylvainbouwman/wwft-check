@@ -118,6 +118,15 @@ HOOG_RISICO_SBI = {"6810", "6820", "6492", "6491", "9200", "9201", "9202", "6612
 MIDDEN_RISICO_SBI = {"5610", "5630", "6411", "6419", "6499", "7711", "7712"}
 HOOG_RISICO_RECHTSVORM = {"Stichting", "Cooperatie", "Commanditaire Vennootschap"}
 
+# Bekende Nederlandse rechtsvormen — alles wat hier NIET in past is vermoedelijk buitenlands
+BEKENDE_NL_RECHTSVORMEN = {
+    "eenmanszaak", "besloten vennootschap", "naamloze vennootschap",
+    "vennootschap onder firma", "maatschap", "commanditaire vennootschap",
+    "stichting", "vereniging", "cooperatie", "coöperatie",
+    "onderlinge waarborgmaatschappij", "europese naamloze vennootschap",
+    "europees economisch samenwerkingsverband",
+}
+
 EU_HOOG_RISICO_LANDEN = {
     "Afghanistan", "Barbados", "Burkina Faso", "Cameroon", "Cayman Islands",
     "Congo (DRC)", "Gibraltar", "Haiti", "Jamaica", "Jordanie",
@@ -336,6 +345,13 @@ def bereken_risico(basisprofiel, screening_bedrijf, screening_personen, land, in
     if any(rv in rechtsvorm for rv in HOOG_RISICO_RECHTSVORM):
         score += 1
         factoren.append(f"Verhoogde aandacht rechtsvorm: {rechtsvorm}")
+    rv_lower = rechtsvorm.lower()
+    if rechtsvorm not in ("-", "") and not any(nl in rv_lower for nl in BEKENDE_NL_RECHTSVORMEN):
+        score += 2
+        factoren.append(
+            f"Buitenlandse rechtsvorm: {rechtsvorm} — UBO-verificatie via Nederlands register "
+            "mogelijk niet mogelijk; aanvullend bronnenonderzoek vereist"
+        )
 
     if land in EU_HOOG_RISICO_LANDEN:
         score += 4
@@ -1152,6 +1168,11 @@ handelsnamen = get_handelsnamen(basisprofiel)
 websites = get_websites(basisprofiel)
 sbi_codes = get_sbi_codes(basisprofiel)
 
+is_buitenlands = (
+    rechtsvorm not in ("-", "")
+    and not any(nl in rechtsvorm.lower() for nl in BEKENDE_NL_RECHTSVORMEN)
+)
+
 col1, col2, col3 = st.columns(3)
 col1.metric("KvK-nummer", kvk_data.get("kvkNummer", "-"))
 col1.metric("Rechtsvorm", rechtsvorm)
@@ -1159,6 +1180,12 @@ col2.metric("Adres", volledig_adres or "-")
 col2.metric("Oprichtingsdatum", get_oprichtingsdatum(basisprofiel))
 col3.metric("Medewerkers", get_medewerkers(basisprofiel))
 
+if is_buitenlands:
+    st.warning(
+        f"⚠️ **Buitenlandse rechtsvorm: {rechtsvorm}** — verificatie via het Nederlands UBO-register "
+        "is mogelijk niet beschikbaar. Raadpleeg het buitenlandse handels- of UBO-register van het "
+        "land van vestiging. Dit telt als verhoogde risicofactor in de risicobeoordeling."
+    )
 if len(handelsnamen) > 1:
     st.info(f"**Handelsnamen:** {', '.join(handelsnamen)}")
 if websites:
