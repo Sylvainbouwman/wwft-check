@@ -492,7 +492,7 @@ def _rij(tabel, label: str, waarde):
 def genereer_word(kvk_data, basisprofiel, personen_data,
                   screening_bedrijf, screening_personen, media,
                   integriteit_antwoorden, pep_handmatig, risico_klasse, score, factoren,
-                  cdd_vorm, cdd_artikel, doel_aard, toelichting,
+                  cdd_vorm, cdd_artikel, doel_aard, toelichting, fiu_melding,
                   medewerker, referentie, nu) -> bytes:
     doc = Document()
     for section in doc.sections:
@@ -883,8 +883,37 @@ def genereer_word(kvk_data, basisprofiel, personen_data,
          else "3 jaar (laag risico)")
     doc.add_paragraph("")
 
-    # 11. Akkoordverklaring
-    doc.add_heading("11. Akkoordverklaring", 1)
+    # 11. FIU-meldingsbeoordeling
+    doc.add_heading("11. FIU-meldingsbeoordeling (art. 16 Wwft)", 1)
+    t = doc.add_table(rows=0, cols=2)
+    t.style = "Table Grid"
+    aanleiding_val = fiu_melding.get("aanleiding", "Niet vastgelegd")
+    _rij(t, "Aanleiding voor melding", aanleiding_val)
+    atype = fiu_melding.get("aanleiding_type", "")
+    if atype and atype != "Niet van toepassing":
+        _rij(t, "Type aanleiding", atype)
+    if fiu_melding.get("omschrijving"):
+        _rij(t, "Omschrijving / motivatie", fiu_melding["omschrijving"])
+    _rij(t, "Intern beraad compliance officer",
+         "Ja" if fiu_melding.get("intern_beraad") else "Nee / niet geregistreerd")
+    _rij(t, "Melder ID beschikbaar",
+         "Ja" if fiu_melding.get("melder_id_beschikbaar") else "Nee / niet geregistreerd")
+    if "Ja" in aanleiding_val:
+        doc.add_paragraph("")
+        p_fiu = doc.add_paragraph()
+        run_fiu = p_fiu.add_run(
+            "MELDING VEREIST bij FIU-Nederland via het meldportaal (fiu-nederland.nl). "
+            "Gebruik het Melder ID van de instelling (accountants en belastingadviseurs "
+            "hebben elk een apart Melder ID). Bewaar rapport-ID en ontvangstbevestiging "
+            "minimaal 5 jaar (art. 33b Wwft). "
+            "TIPPING OFF VERBOD (art. 23 Wwft): informeer de cliënt NIET over deze melding."
+        )
+        run_fiu.bold = True
+        run_fiu.font.color.rgb = RGBColor(0xC0, 0x00, 0x00)
+    doc.add_paragraph("")
+
+    # 12. Akkoordverklaring
+    doc.add_heading("12. Akkoordverklaring", 1)
     t = doc.add_table(rows=0, cols=4)
     t.style = "Table Grid"
     hr = t.add_row()
@@ -948,17 +977,19 @@ with st.sidebar:
         "screening":   "screening_bedrijf"  in st.session_state,
         "pep":         "pep_handmatig"      in st.session_state,
         "integriteit": "integriteitsvragen" in st.session_state,
+        "fiu":         "fiu_melding"        in st.session_state,
     }
     st.markdown("**Voortgang**")
     _stappen_ui = [
-        ("Bedrijf zoeken",     "kvk"),
-        ("Doel en aard",       "doel"),
-        ("Personen & UBO's",   "personen"),
-        ("Screening",          "screening"),
-        ("PEP-check",          "pep"),
-        ("Integriteitsvragen", "integriteit"),
-        ("Risicobeoordeling",  "integriteit"),
-        ("Rapport downloaden", "integriteit"),
+        ("Bedrijf zoeken",        "kvk"),
+        ("Doel en aard",          "doel"),
+        ("Personen & UBO's",      "personen"),
+        ("Screening",             "screening"),
+        ("PEP-check",             "pep"),
+        ("Integriteitsvragen",    "integriteit"),
+        ("Risicobeoordeling",     "integriteit"),
+        ("FIU-meldingsbeoordeling", "fiu"),
+        ("Rapport downloaden",    "fiu"),
     ]
     _actief_geweest = False
     for _lbl, _key in _stappen_ui:
@@ -1717,11 +1748,105 @@ toelichting = st.text_area(
 )
 
 # ──────────────────────────────────────────────
-# Stap 8: Rapport downloaden
+# Stap 8: FIU-meldingsbeoordeling
 # ──────────────────────────────────────────────
 
 st.divider()
-st.subheader("📄 Stap 8: Rapport downloaden")
+st.subheader("🚨 Stap 8: FIU-meldingsbeoordeling")
+st.caption(
+    "De Wwft verplicht ongebruikelijke transacties onverwijld te melden bij FIU-Nederland (art. 16 Wwft). "
+    "Leg hier vast of er aanleiding is, ook als het antwoord 'nee' is."
+)
+
+if "fiu_melding" not in st.session_state:
+    with st.form("fiu_form"):
+        aanleiding = st.radio(
+            "Is er aanleiding voor een melding bij FIU-Nederland?",
+            [
+                "Nee — geen ongebruikelijke transacties of situaties geconstateerd",
+                "Nader onderzoek — intern overleg met compliance officer gewenst",
+                "Ja — melding bij FIU-Nederland vereist (art. 16 Wwft)",
+            ],
+            index=0,
+        )
+        st.markdown("---")
+        aanleiding_type = st.radio(
+            "Type aanleiding",
+            [
+                "Ongebruikelijke transactie (objectief of subjectief indicator)",
+                "Cliëntenonderzoek heeft niet het vereiste resultaat opgeleverd",
+                "Beëindiging zakelijke relatie wegens vermoedens",
+                "Niet van toepassing",
+            ],
+            index=3,
+        )
+        omschrijving = st.text_area(
+            "Omschrijving en motivatie (verplicht bij 'Nader onderzoek' of 'Ja')",
+            placeholder=(
+                "Beschrijf de ongebruikelijke transactie of situatie en waarom deze "
+                "als ongebruikelijk wordt beschouwd. Vermeld: aard, tijdstip, omvang, "
+                "herkomst en bestemming van de gelden."
+            ),
+            height=120,
+        )
+        col1, col2 = st.columns(2)
+        intern_beraad = col1.checkbox("Intern beraad gevoerd met compliance officer")
+        melder_id_beschikbaar = col2.checkbox("Melder ID bij FIU-Nederland beschikbaar")
+        submit_fiu = st.form_submit_button("Bevestigen en doorgaan →", type="primary")
+
+    if submit_fiu:
+        st.session_state["fiu_melding"] = {
+            "aanleiding": aanleiding,
+            "aanleiding_type": aanleiding_type,
+            "omschrijving": omschrijving.strip(),
+            "intern_beraad": intern_beraad,
+            "melder_id_beschikbaar": melder_id_beschikbaar,
+        }
+        st.rerun()
+    st.stop()
+else:
+    fiu_data = st.session_state["fiu_melding"]
+    aval = fiu_data.get("aanleiding", "")
+    if "Ja" in aval:
+        st.error("🚨 Melding bij FIU-Nederland vereist — zie sectie 11 in het rapport")
+        if not fiu_data.get("intern_beraad"):
+            st.warning("⚠️ Intern beraad met compliance officer nog niet geregistreerd")
+    elif "Nader" in aval:
+        st.warning("⚠️ Nader onderzoek gewenst — resultaat vastleggen vóór afsluiting")
+    else:
+        st.success("✅ Geen aanleiding voor FIU-melding geconstateerd")
+    if fiu_data.get("omschrijving"):
+        st.caption(fiu_data["omschrijving"])
+    if ("Ja" in aval or "Nader" in aval):
+        with st.expander("📋 Checklist FIU-melding (art. 16 Wwft)"):
+            st.markdown(
+                "**Verplicht op te nemen in de melding:**\n"
+                "- ☐ Identiteit cliënt (naam, adres, KvK/BSN)\n"
+                "- ☐ Identiteit UBO('s)\n"
+                "- ☐ Aard van de transactie\n"
+                "- ☐ Tijdstip van de transactie\n"
+                "- ☐ Omvang (bedrag)\n"
+                "- ☐ Herkomst van de gelden\n"
+                "- ☐ Bestemming van de gelden\n"
+                "- ☐ Reden waarom de transactie als ongebruikelijk wordt beschouwd\n\n"
+                "**Procedure:**\n"
+                "1. Meld via het portaal op **fiu-nederland.nl**\n"
+                "2. Gebruik het **Melder ID** van de instelling "
+                "(accountants en belastingadviseurs hebben elk een apart ID)\n"
+                "3. Bewaar rapport-ID en ontvangstbevestiging — minimaal 5 jaar (art. 33b Wwft)\n\n"
+                "🔒 **Tipping off verbod (art. 23 Wwft):** informeer de cliënt niet "
+                "over de melding of het overleg hierover. Schending is strafbaar."
+            )
+    if st.button("Wijzigen", key="wijzig_fiu"):
+        st.session_state.pop("fiu_melding", None)
+        st.rerun()
+
+# ──────────────────────────────────────────────
+# Stap 9: Rapport downloaden
+# ──────────────────────────────────────────────
+
+st.divider()
+st.subheader("📄 Stap 9: Rapport downloaden")
 st.caption(
     "Het Word-rapport bevat alle stappen, identificatiegegevens, screeningsuitkomsten en de risicoclassificatie. "
     "Bewaarplicht: minimaal 7 jaar na afsluiting opdracht (art. 33 Wwft)."
@@ -1734,12 +1859,13 @@ doel_aard = st.session_state.get("doel_aard", {})
 personen_data = st.session_state.get("personen_data", [])
 integriteit_antwoorden = st.session_state.get("integriteitsvragen", {})
 pep_handmatig = st.session_state.get("pep_handmatig", {})
+fiu_melding = st.session_state.get("fiu_melding", {})
 
 word_bytes = genereer_word(
     kvk_data, basisprofiel, personen_data,
     screening_bedrijf, screening_personen, media,
     integriteit_antwoorden, pep_handmatig, risico_klasse, score, factoren,
-    cdd_vorm, cdd_artikel, doel_aard, toelichting,
+    cdd_vorm, cdd_artikel, doel_aard, toelichting, fiu_melding,
     medewerker, referentie, nu,
 )
 
