@@ -103,6 +103,7 @@ wwft-check/
 - ✅ Bewaarplicht 7 jaar: vermeld in rapport en stap 8 (art. 33 Wwft)
 - ✅ Hertoetsingstermijn op basis van risicoclassificatie: 6 mnd (hoog) / 1 jaar (midden) / 3 jaar (laag)
 - ✅ FIU-meldingsbeoordeling (stap 9): vastlegging aanleiding, type, omschrijving, intern beraad en Melder ID; checklist in UI en rapport; tipping off verbod prominently vermeld
+- ✅ Vloer MIDDEN voor MKB-cliënten: LAAG alleen bij expliciete art. 6 Wwft-kwalificatie (beursgenoteerd / overheid / financiële instelling)
 - Buitenlandse rechtsvorm als expliciete risicofactor in de beoordeling
 
 ### Fase 2 — Integratie met bestaande systemen
@@ -121,4 +122,4 @@ wwft-check/
 
 ## Status
 
-**v0.5 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.
+**v0.6 — demo** · live via [Streamlit Community Cloud](https://wwft-check.streamlit.app) · gebouwd voor interne presentatie aan de kopgroep · niet geschikt voor productiegebruik zonder aanvullende beveiligings- en infrastructuurmaatregelen.

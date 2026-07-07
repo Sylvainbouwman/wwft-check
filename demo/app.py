@@ -318,7 +318,7 @@ def zoek_adverse_media(naam: str) -> dict:
 # Risicobeoordeling
 # ──────────────────────────────────────────────
 
-def bereken_risico(basisprofiel, screening_bedrijf, screening_personen, land, integriteit_antwoorden):
+def bereken_risico(basisprofiel, screening_bedrijf, screening_personen, land, integriteit_antwoorden, art6_kwalificatie=False):
     score = 0
     factoren = []
 
@@ -382,13 +382,19 @@ def bereken_risico(basisprofiel, screening_bedrijf, screening_personen, land, in
         return "HOOG", score, factoren
     if score >= 3:
         return "MIDDEN", score, factoren
-    return "LAAG", score, factoren
+    if art6_kwalificatie:
+        return "LAAG", score, factoren
+    # Geen art. 6 Wwft-kwalificatie: vloer op MIDDEN (standaard cliëntenonderzoek is minimum)
+    factoren.append("Vloer: standaard cliëntenonderzoek — cliënt kwalificeert niet voor art. 6 Wwft")
+    return "MIDDEN", score, factoren
 
 
 def get_cdd_vorm(risico_klasse: str):
     if risico_klasse == "HOOG":
-        return "Verscherpt cliëntenonderzoek", "art. 8 WWFT"
-    return "Standaard cliëntenonderzoek", "art. 3 WWFT"
+        return "Verscherpt cliëntenonderzoek", "art. 8 Wwft"
+    if risico_klasse == "LAAG":
+        return "Vereenvoudigd cliëntenonderzoek", "art. 6 Wwft"
+    return "Standaard cliëntenonderzoek", "art. 3 Wwft"
 
 # ──────────────────────────────────────────────
 # Helpers basisprofiel
@@ -567,6 +573,9 @@ def genereer_word(kvk_data, basisprofiel, personen_data,
     _rij(t, "Land cliënt / UBO's", doel_aard.get("land", ""))
     _rij(t, "Doel zakelijke relatie", doel_aard.get("doel", ""))
     _rij(t, "Verwacht transactieprofiel", doel_aard.get("transactieprofiel", ""))
+    _rij(t, "Art. 6 Wwft-kwalificatie",
+         "Ja — vereenvoudigd cliëntenonderzoek toegestaan" if doel_aard.get("art6_kwalificatie")
+         else "Nee — standaard cliëntenonderzoek van toepassing (vloer)")
     doc.add_paragraph("")
 
     # 4. Personen — route-afhankelijk
@@ -1189,6 +1198,15 @@ if "doel_aard" not in st.session_state:
             transactieprofiel_vrij = ""
             if transactieprofiel_keuze == "Overig (vrij invullen)":
                 transactieprofiel_vrij = st.text_area("Toelichting transactieprofiel", height=68)
+        st.markdown("---")
+        art6 = st.checkbox(
+            "Cliënt kwalificeert voor vereenvoudigd cliëntenonderzoek (art. 6 Wwft)",
+            help=(
+                "Alleen aanvinken voor: beursgenoteerde ondernemingen op een gereglementeerde markt, "
+                "overheidsinstanties, of financiële instellingen die zelf onder Wwft-toezicht staan. "
+                "Voor gewone MKB-cliënten is dit vakje NIET van toepassing."
+            ),
+        )
         bevestig = st.form_submit_button("Bevestigen en doorgaan →", type="primary")
 
     if bevestig:
@@ -1203,6 +1221,7 @@ if "doel_aard" not in st.session_state:
                 "land": land,
                 "doel": doel,
                 "transactieprofiel": tp,
+                "art6_kwalificatie": art6,
             }
             st.rerun()
     st.stop()
@@ -1215,6 +1234,8 @@ else:
     col2.write(f"**Doel:** {da['doel']}")
     if da.get("transactieprofiel"):
         col2.write(f"**Transactieprofiel:** {da['transactieprofiel']}")
+    if da.get("art6_kwalificatie"):
+        st.info("ℹ️ Art. 6 Wwft: vereenvoudigd cliëntenonderzoek toegestaan voor deze cliënt.")
     if st.button("Wijzigen", key="wijzig_doel"):
         for k in ["doel_aard", "personen_data", "screening_bedrijf",
                   "screening_personen", "media", "integriteitsvragen"]:
@@ -1700,6 +1721,7 @@ risico_klasse, score, factoren = bereken_risico(
     screening_personen,
     land,
     st.session_state.get("integriteitsvragen", {}),
+    art6_kwalificatie=st.session_state.get("doel_aard", {}).get("art6_kwalificatie", False),
 )
 cdd_vorm, cdd_artikel = get_cdd_vorm(risico_klasse)
 
