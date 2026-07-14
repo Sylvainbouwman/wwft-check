@@ -15,3 +15,16 @@ demo/test_*.py
 # OS
 .DS_Store
 Thumbs.db
+
+# Conceptmails en persoonlijke correspondentie
+mail_*.md
+
+# Klant- en werkbestanden
+*.pdf
+*.csv
+*.xlsx
+*.xls
+*.xaf
+*.XAF
+*.xml
+*.docx
